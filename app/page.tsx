@@ -12,6 +12,7 @@ import {
 } from "./components";
 
 export default function HomePage() {
+  // State
   const [folders, setFolders] = useState<Folder[]>(MOCK_FOLDERS);
   const [links, setLinks] = useState<Link[]>(MOCK_LINKS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -100,7 +101,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-950">
+    <main className="min-h-screen bg-amber-50 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <Header />
 

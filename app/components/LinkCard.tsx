@@ -25,18 +25,18 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
   const getGradient = (url: string) => {
     const hash = url.split("").reduce((a, b) => a + b.charCodeAt(0), 0);
     const gradients = [
-      "from-violet-600 to-indigo-600",
-      "from-fuchsia-600 to-pink-600",
-      "from-cyan-600 to-blue-600",
-      "from-emerald-600 to-teal-600",
-      "from-amber-600 to-orange-600",
-      "from-rose-600 to-red-600",
+      "from-amber-500 to-orange-600",
+      "from-orange-500 to-red-500",
+      "from-rose-500 to-pink-600",
+      "from-teal-500 to-emerald-600",
+      "from-cyan-500 to-blue-500",
+      "from-stone-500 to-stone-700",
     ];
     return gradients[hash % gradients.length];
   };
 
   return (
-    <div className="group relative bg-zinc-800/50 border border-zinc-700/50 rounded-2xl overflow-hidden hover:border-zinc-600 transition-all duration-200">
+    <div className="group relative bg-stone-100 /50 border border-stone-200  rounded-xl overflow-hidden hover:border-stone-300 transition-all duration-200">
       {/* Placeholder preview */}
       <div
         className={clsx(
@@ -44,35 +44,35 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
           getGradient(link.url),
         )}
       >
-        <span className="text-white/30 text-4xl font-bold">GIF</span>
+        <span className="text-white/30 text-xl sm:text-2xl font-bold">GIF</span>
       </div>
 
       {/* Card content */}
-      <div className="p-3">
-        <p className="text-xs text-zinc-500 truncate font-mono">
+      <div className="p-2">
+        <p className="text-[10px] sm:text-xs text-stone-500 truncate font-mono">
           ...{getTweetId(link.url)}
         </p>
       </div>
 
       {/* Hover actions */}
-      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-1 sm:gap-2">
         <a
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"
+          className="p-1.5 sm:p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
           title="Open tweet"
         >
-          <ExternalLink size={20} />
+          <ExternalLink size={16} className="sm:w-[18px] sm:h-[18px]" />
         </a>
 
         <div className="relative">
           <button
             onClick={() => setShowMoveMenu(!showMoveMenu)}
-            className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"
+            className="p-1.5 sm:p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
             title="Move to folder"
           >
-            <FolderInput size={20} />
+            <FolderInput size={16} className="sm:w-[18px] sm:h-[18px]" />
           </button>
 
           {showMoveMenu && (
@@ -81,15 +81,15 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
                 className="fixed inset-0 z-10"
                 onClick={() => setShowMoveMenu(false)}
               />
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-20 py-1 min-w-[140px]">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white  border border-stone-200 rounded-lg shadow-xl z-20 py-1 min-w-[120px]">
                 <button
                   onClick={() => {
                     onMove(link.id, null);
                     setShowMoveMenu(false);
                   }}
                   className={clsx(
-                    "w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 transition-colors",
-                    !link.folder_id ? "text-violet-400" : "text-zinc-300",
+                    "w-full px-3 py-1.5 text-xs sm:text-sm text-left hover:bg-stone-100  transition-colors",
+                    !link.folder_id ? "text-amber-600 " : "text-stone-700",
                   )}
                 >
                   No folder
@@ -102,10 +102,10 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
                       setShowMoveMenu(false);
                     }}
                     className={clsx(
-                      "w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 transition-colors",
+                      "w-full px-3 py-1.5 text-xs sm:text-sm text-left hover:bg-stone-100  transition-colors",
                       link.folder_id === folder.id
-                        ? "text-violet-400"
-                        : "text-zinc-300",
+                        ? "text-amber-600 "
+                        : "text-stone-700",
                     )}
                   >
                     {folder.name}
@@ -118,10 +118,10 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
 
         <button
           onClick={() => onDelete(link.id)}
-          className="p-2.5 bg-white/10 hover:bg-red-500/50 rounded-xl text-white transition-colors"
+          className="p-1.5 sm:p-2 bg-white/10 hover:bg-red-500/50 rounded-lg text-white transition-colors"
           title="Delete"
         >
-          <Trash2 size={20} />
+          <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
         </button>
       </div>
     </div>

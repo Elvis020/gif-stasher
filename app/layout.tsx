@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { QueryProvider } from "@/lib/query-provider";
+import { QueryProvider } from "@/providers/query-provider";
 
 import { Fredoka } from "next/font/google";
+// import { ThemeProvider } from "@/providers/theme-provider";
 
 const fredoka = Fredoka({
   subsets: ["latin"],
@@ -16,12 +17,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body className={`${fredoka.className} antialiased`}>
+    <html lang="en" className="light" suppressHydrationWarning>
+      <body className={fredoka.className}>
         <QueryProvider>{children}</QueryProvider>
       </body>
     </html>

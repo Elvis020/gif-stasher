@@ -76,7 +76,7 @@ export function AddLinkForm({
       </div>
 
       {url && !isValidUrl && (
-        <p className="mt-2 text-sm text-amber-500">
+        <p className="mt-2 text-sm text-orange-600">
           Please enter a valid Twitter/X URL
         </p>
       )}

@@ -21,11 +21,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           "disabled:opacity-50 disabled:cursor-not-allowed",
           "active:scale-95",
           {
-            "bg-violet-500 text-white hover:bg-violet-600 shadow-lg shadow-violet-500/25":
+            "bg-amber-600 text-white hover:bg-amber-700 shadow-lg shadow-amber-600/25 ":
               variant === "primary",
-            "bg-zinc-800 text-zinc-100 hover:bg-zinc-700":
+            "bg-stone-200 text-stone-800 hover:bg-stone-300 ":
               variant === "secondary",
-            "bg-transparent text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800":
+            "bg-transparent text-stone-500 hover:text-stone-800 hover:bg-stone-200 ":
               variant === "ghost",
           },
           {

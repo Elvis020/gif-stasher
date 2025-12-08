@@ -3,6 +3,7 @@
 import { Link, Folder } from "@/types";
 import { LinkCard } from "./LinkCard";
 import { EmptyState } from "./EmptyState";
+
 interface LinkGridProps {
   links: Link[];
   folders: Folder[];
@@ -20,11 +21,11 @@ export function LinkGrid({
 }: LinkGridProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {[...Array(8)].map((_, i) => (
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+        {[...Array(12)].map((_, i) => (
           <div
             key={i}
-            className="aspect-video bg-zinc-800 rounded-2xl animate-pulse"
+            className="aspect-video bg-stone-200  rounded-xl animate-pulse"
           />
         ))}
       </div>
@@ -36,7 +37,7 @@ export function LinkGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
       {links.map((link) => (
         <LinkCard
           key={link.id}

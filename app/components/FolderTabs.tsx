@@ -40,8 +40,8 @@ export function FolderTabs({
           className={clsx(
             "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
             selectedFolderId === null
-              ? "bg-violet-500 text-white shadow-lg shadow-violet-500/25"
-              : "bg-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700",
+              ? "bg-amber-600  text-white shadow-lg shadow-amber-600/25 "
+              : "bg-stone-200  text-stone-600  hover:text-stone-800 hover:bg-stone-300 ",
           )}
         >
           <FolderIcon size={16} />
@@ -49,7 +49,7 @@ export function FolderTabs({
           <span
             className={clsx(
               "px-1.5 py-0.5 rounded-md text-xs",
-              selectedFolderId === null ? "bg-violet-400/30" : "bg-zinc-700",
+              selectedFolderId === null ? "bg-amber-500/30" : "bg-stone-300 ",
             )}
           >
             {totalLinks}
@@ -64,8 +64,8 @@ export function FolderTabs({
               className={clsx(
                 "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
                 selectedFolderId === folder.id
-                  ? "bg-violet-500 text-white shadow-lg shadow-violet-500/25"
-                  : "bg-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700",
+                  ? "bg-amber-600 text-white shadow-lg shadow-amber-600/25 "
+                  : "bg-stone-200  text-stone-600  hover:text-stone-800 hover:bg-stone-300 ",
               )}
             >
               <FolderIcon size={16} />
@@ -74,8 +74,8 @@ export function FolderTabs({
                 className={clsx(
                   "px-1.5 py-0.5 rounded-md text-xs",
                   selectedFolderId === folder.id
-                    ? "bg-violet-400/30"
-                    : "bg-zinc-700",
+                    ? "bg-amber-500/30"
+                    : "bg-stone-300",
                 )}
               >
                 {linkCounts[folder.id] || 0}
@@ -89,10 +89,10 @@ export function FolderTabs({
                   setOpenMenuId(openMenuId === folder.id ? null : folder.id);
                 }}
                 className={clsx(
-                  "p-0.5 rounded hover:bg-white/10",
+                  "p-0.5 rounded hover:bg-black/10",
                   selectedFolderId === folder.id
                     ? "text-white/70"
-                    : "text-zinc-500",
+                    : "text-stone-400",
                 )}
               >
                 <MoreHorizontal size={14} />
@@ -106,13 +106,13 @@ export function FolderTabs({
                   className="fixed inset-0 z-10"
                   onClick={() => setOpenMenuId(null)}
                 />
-                <div className="absolute top-full right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-20 py-1 min-w-[120px]">
+                <div className="absolute top-full right-0 mt-1 bg-white  border border-stone-200 rounded-lg shadow-xl z-20 py-1 min-w-[120px]">
                   <button
                     onClick={() => {
                       onEdit(folder);
                       setOpenMenuId(null);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-100  transition-colors"
                   >
                     <Pencil size={14} />
                     Rename
@@ -122,7 +122,7 @@ export function FolderTabs({
                       onDelete(folder.id);
                       setOpenMenuId(null);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-zinc-700 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600  hover:bg-stone-100 transition-colors"
                   >
                     <Trash2 size={14} />
                     Delete
