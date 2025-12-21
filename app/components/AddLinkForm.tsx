@@ -144,7 +144,7 @@ export function AddLinkForm({
   return (
     <form onSubmit={handleSubmit} className="mb-8">
       <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex gap-3">
           <div className="flex-1">
             <Input
               type="url"
@@ -161,30 +161,7 @@ export function AddLinkForm({
           </div>
 
           <div className="flex gap-2">
-            <Select
-              value={folderId}
-              onChange={(e) => setFolderId(e.target.value)}
-              className="min-w-[140px]"
-              disabled={isProcessing}
-            >
-              <option value="">No folder</option>
-              {folders.map((folder) => (
-                <option key={folder.id} value={folder.id}>
-                  {folder.name}
-                </option>
-              ))}
-            </Select>
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="md"
-              onClick={onNewFolder}
-              className="px-2.5"
-              disabled={isProcessing}
-            >
-              <Plus size={20} />
-            </Button>
+          
 
             <Button type="submit" disabled={!isValidUrl || isProcessing}>
               {validating ? (

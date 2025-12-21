@@ -222,18 +222,19 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
   return (
     <div
       className={clsx(
-        "group relative bg-stone-100 border border-stone-200 rounded-xl overflow-hidden transition-all duration-200",
+        "group relative bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm",
+        "transition-all duration-500 ease-out",
         isDeleting
-          ? "opacity-50 pointer-events-none"
-          : "hover:border-stone-300",
+          ? "opacity-50 pointer-events-none scale-95"
+          : "hover:shadow-2xl hover:border-stone-300 hover:-translate-y-1 hover:scale-[1.02]",
       )}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      {/* Video/Thumbnail Preview */}
+      {/* Video/Thumbnail Preview - tall cards for better visibility */}
       <div
         className={clsx(
-          "aspect-video relative flex items-center justify-center transition-opacity",
+          "aspect-[3/4] sm:aspect-[3/4] lg:aspect-[4/5] relative flex items-center justify-center transition-opacity",
           !link.thumbnail &&
             !hasVideo &&
             `bg-gradient-to-br ${getGradient(link.url)}`,
@@ -303,84 +304,66 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
         )}
       </div>
 
-      {/* Card footer - Quick actions left, dropdown right */}
-      <div className="p-1.5 sm:p-2 flex items-center justify-between border-t border-stone-200">
-        {/* Quick actions */}
-        <div className="flex items-center gap-1">
-          {hasVideo ? (
-            <>
-              {/* Copy Image */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCopyImageToClipboard();
-                }}
-                disabled={isCopyingImage}
-                className="p-1.5 hover:bg-stone-200 rounded-md text-stone-600 transition-colors disabled:opacity-50"
-                title={copiedImage ? "Copied!" : "Copy image"}
-              >
-                {isCopyingImage ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : copiedImage ? (
-                  <Check size={16} className="text-green-500" />
-                ) : (
-                  <Clipboard size={16} />
-                )}
-              </button>
-
-              {/* Copy URL */}
-              <button
-                onClick={handleCopyUrl}
-                className="p-1.5 hover:bg-stone-200 rounded-md text-stone-600 transition-colors"
-                title={copied ? "Copied!" : "Copy URL"}
-              >
-                {copied ? (
-                  <Check size={16} className="text-green-500" />
-                ) : (
-                  <Copy size={16} />
-                )}
-              </button>
-
-              {/* Download */}
-              <button
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className="p-1.5 hover:bg-stone-200 rounded-md text-stone-600 transition-colors disabled:opacity-50"
-                title={isDownloading ? "Downloading..." : "Download"}
-              >
-                {isDownloading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Download size={16} />
-                )}
-              </button>
-            </>
-          ) : (
-            /* Copy URL when no video */
+      {/* Card footer - Actions evenly distributed (mobile/tablet only) */}
+      <div className="p-2 flex lg:hidden items-center justify-evenly border-t border-stone-200">
+        {hasVideo ? (
+          <>
+            {/* Copy Image */}
             <button
-              onClick={handleCopyUrl}
-              className="p-1.5 hover:bg-stone-200 rounded-md text-stone-600 transition-colors"
-              title={copied ? "Copied!" : "Copy tweet URL"}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopyImageToClipboard();
+              }}
+              disabled={isCopyingImage}
+              className="p-2 hover:bg-stone-200 rounded-md text-stone-600 transition-colors disabled:opacity-50"
+              title={copiedImage ? "Copied!" : "Copy image"}
             >
-              {copied ? (
-                <Check size={16} className="text-green-500" />
+              {isCopyingImage ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : copiedImage ? (
+                <Check size={18} className="text-green-500" />
               ) : (
-                <Copy size={16} />
+                <Clipboard size={18} />
               )}
             </button>
-          )}
-        </div>
 
-        {/* More actions dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+            {/* Copy URL */}
             <button
-              className="p-1.5 hover:bg-stone-200 rounded-md text-stone-500 transition-colors"
-              title="More actions"
+              onClick={handleCopyUrl}
+              className="p-2 hover:bg-stone-200 rounded-md text-stone-600 transition-colors"
+              title={copied ? "Copied!" : "Copy URL"}
             >
-              <MoreHorizontal size={16} />
+              {copied ? (
+                <Check size={18} className="text-green-500" />
+              ) : (
+                <Copy size={18} />
+              )}
             </button>
-          </DropdownMenuTrigger>
+
+            {/* Download */}
+            <button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="p-2 hover:bg-stone-200 rounded-md text-stone-600 transition-colors disabled:opacity-50"
+              title={isDownloading ? "Downloading..." : "Download"}
+            >
+              {isDownloading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Download size={18} />
+              )}
+            </button>
+
+            {/* More actions dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="p-2 hover:bg-stone-200 rounded-md text-stone-500 transition-colors"
+                  title="More actions"
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+              </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
             {/* Open tweet */}
             <DropdownMenuItem asChild>
@@ -459,14 +442,219 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+          </>
+        ) : (
+          /* When no video - just copy URL and dropdown */
+          <>
+            <button
+              onClick={handleCopyUrl}
+              className="p-2 hover:bg-stone-200 rounded-md text-stone-600 transition-colors"
+              title={copied ? "Copied!" : "Copy tweet URL"}
+            >
+              {copied ? (
+                <Check size={18} className="text-green-500" />
+              ) : (
+                <Copy size={18} />
+              )}
+            </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="p-2 hover:bg-stone-200 rounded-md text-stone-500 transition-colors"
+                  title="More actions"
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem asChild>
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <ExternalLink size={14} />
+                    Open tweet
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
+                >
+                  {isDeleting ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={14} />
+                  )}
+                  {isDeleting ? "Deleting..." : "Delete"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
       </div>
 
-      {/* Hover overlay for desktop - video preview only */}
-      {hasVideo && (
-        <div className="absolute inset-0 bottom-auto aspect-video bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none hidden sm:flex items-center justify-center">
-          <span className="text-white/80 text-xs font-medium">Hover to preview</span>
-        </div>
-      )}
+      {/* Hover overlay with actions (desktop only) */}
+      <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-all duration-500 ease-out hidden lg:flex items-center justify-center gap-3">
+        {/* Primary actions */}
+        {hasVideo && (
+          <>
+            {/* Copy Image to Clipboard */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopyImageToClipboard();
+              }}
+              disabled={isCopyingImage}
+              className="p-2.5 bg-white/10 hover:bg-purple-500 rounded-lg text-white transition-colors duration-300 disabled:opacity-50"
+              title={copiedImage ? "Copied!" : isCopyingImage ? "Copying..." : "Copy image (Shift+C)"}
+            >
+              {isCopyingImage ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : copiedImage ? (
+                <Check size={16} className="text-green-400" />
+              ) : (
+                <Clipboard size={16} />
+              )}
+            </button>
+
+            {/* Copy URL */}
+            <button
+              onClick={handleCopyUrl}
+              className="p-2.5 bg-white/10 hover:bg-amber-500 rounded-lg text-white transition-colors duration-300"
+              title={copied ? "Copied!" : "Copy URL (C)"}
+            >
+              {copied ? (
+                <Check size={16} className="text-green-400" />
+              ) : (
+                <Copy size={16} />
+              )}
+            </button>
+
+            {/* Download */}
+            <button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="p-2.5 bg-white/10 hover:bg-green-500 rounded-lg text-white transition-colors duration-300 disabled:opacity-50"
+              title={isDownloading ? "Downloading..." : "Download (D)"}
+            >
+              {isDownloading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Download size={16} />
+              )}
+            </button>
+          </>
+        )}
+
+        {/* Copy URL when no video */}
+        {!hasVideo && (
+          <button
+            onClick={handleCopyUrl}
+            className="p-2.5 bg-white/10 hover:bg-amber-500 rounded-lg text-white transition-colors duration-300"
+            title={copied ? "Copied!" : "Copy tweet URL (C)"}
+          >
+            {copied ? (
+              <Check size={16} className="text-green-400" />
+            ) : (
+              <Copy size={16} />
+            )}
+          </button>
+        )}
+
+        {/* More actions dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="p-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors duration-300"
+              title="More actions"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-40">
+            {/* Open tweet */}
+            <DropdownMenuItem asChild>
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <ExternalLink size={14} />
+                Open tweet
+              </a>
+            </DropdownMenuItem>
+
+            {/* Retry for failed */}
+            {hasFailed && (
+              <DropdownMenuItem
+                onClick={handleRetry}
+                disabled={retryVideo.isPending}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                {retryVideo.isPending ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={14} />
+                )}
+                Retry download
+              </DropdownMenuItem>
+            )}
+
+            {/* Move to folder submenu */}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="flex items-center gap-2 cursor-pointer">
+                <FolderInput size={14} />
+                Move to folder
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem
+                  onClick={() => onMove(link.id, null)}
+                  className={clsx(
+                    "cursor-pointer",
+                    !link.folder_id && "text-amber-600",
+                  )}
+                >
+                  No folder
+                </DropdownMenuItem>
+                {folders.map((folder) => (
+                  <DropdownMenuItem
+                    key={folder.id}
+                    onClick={() => onMove(link.id, folder.id)}
+                    className={clsx(
+                      "cursor-pointer",
+                      link.folder_id === folder.id && "text-amber-600",
+                    )}
+                  >
+                    {folder.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
+            <DropdownMenuSeparator />
+
+            {/* Delete */}
+            <DropdownMenuItem
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
+            >
+              {isDeleting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Trash2 size={14} />
+              )}
+              {isDeleting ? "Deleting..." : "Delete"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }

@@ -4,10 +4,9 @@ import { useState } from "react";
 import { Folder } from "@/types";
 import {
   AddLinkForm,
+  FolderDrawer,
   FolderModal,
-  FolderTabs,
   Header,
-  LinkGrid,
 } from "./components";
 import {
   useFolders,
@@ -33,18 +32,11 @@ export default function HomePage() {
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
 
-  // State
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-
   // Modal state
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
 
   // Computed
-  const filteredLinks = selectedFolderId
-    ? links.filter((link) => link.folder_id === selectedFolderId)
-    : links;
-
   const linkCounts = links.reduce(
     (acc, link) => {
       const key = link.folder_id || "unsorted";
@@ -98,9 +90,6 @@ export default function HomePage() {
 
   const handleDeleteFolder = (folderId: string) => {
     deleteFolder.mutate(folderId);
-    if (selectedFolderId === folderId) {
-      setSelectedFolderId(null);
-    }
   };
 
   const openNewFolderModal = () => {
@@ -128,20 +117,15 @@ export default function HomePage() {
           isLoading={createLink.isPending}
         />
 
-        <FolderTabs
+        <FolderDrawer
           folders={folders}
-          selectedFolderId={selectedFolderId}
-          onSelect={setSelectedFolderId}
-          onEdit={handleEditFolder}
-          onDelete={handleDeleteFolder}
+          links={links}
+          onDeleteLink={handleDeleteLink}
+          onMoveLink={handleMoveLink}
+          onNewFolder={openNewFolderModal}
+          onEditFolder={handleEditFolder}
+          onDeleteFolder={handleDeleteFolder}
           linkCounts={linkCounts}
-        />
-
-        <LinkGrid
-          links={filteredLinks}
-          folders={folders}
-          onDelete={handleDeleteLink}
-          onMove={handleMoveLink}
         />
 
         <FolderModal
