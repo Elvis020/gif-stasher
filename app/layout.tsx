@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/app/hooks/useTheme";
+import { Toaster } from "sonner";
 
 import { Fredoka } from "next/font/google";
 
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className={fredoka.className}>
         <ThemeProvider>
           <QueryProvider>{children}</QueryProvider>
+          <Toaster position="bottom-center" />
         </ThemeProvider>
       </body>
     </html>

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Send, Loader2 } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { Folder, Link } from "@/types";
-import { Button, Input, Select } from "./custom-ui";
+import { Button, Input } from "./custom-ui";
+import { toast } from "sonner";
 
 import { validateTwitterGif } from "@/app/actions";
-import { useProcessVideo } from "@/app/hooks/useSupabase";
+import { useProcessVideo, useDeleteLink } from "@/app/hooks/useSupabase";
 import { useTheme } from "@/app/hooks/useTheme";
 
 interface AddLinkFormProps {
@@ -31,25 +32,17 @@ export function AddLinkForm({
   const [folderId, setFolderId] = useState<string>("");
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Video processing state
   const [processingVideo, setProcessingVideo] = useState(false);
-  const [videoError, setVideoError] = useState<string | null>(null);
-  const [showManualVideoInput, setShowManualVideoInput] = useState(false);
-  const [manualVideoUrl, setManualVideoUrl] = useState("");
-  const [pendingLinkId, setPendingLinkId] = useState<string | null>(null);
-  const [pendingTweetUrl, setPendingTweetUrl] = useState<string | null>(null);
 
   const processVideo = useProcessVideo();
+  const deleteLink = useDeleteLink();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
 
     setError(null);
-    setVideoError(null);
     setValidating(true);
-    setShowManualVideoInput(false);
 
     try {
       // Step 1: Validate the tweet
@@ -82,14 +75,20 @@ export function AddLinkForm({
         setUrl("");
         setProcessingVideo(false);
       } catch (videoErr) {
-        // Video extraction failed - show manual input
+        // Video extraction failed - delete the link and show error
         const errorMessage =
           videoErr instanceof Error ? videoErr.message : "Video extraction failed";
-        setVideoError(errorMessage);
-        setShowManualVideoInput(true);
-        setPendingLinkId(createdLink.id);
-        setPendingTweetUrl(url.trim());
+
+        // Delete the partially created link
+        try {
+          await deleteLink.mutateAsync(createdLink);
+        } catch (deleteErr) {
+          console.error("Failed to delete link:", deleteErr);
+        }
+
+        toast.error(errorMessage);
         setProcessingVideo(false);
+        // Keep URL in input so user can try again or copy it
       }
     } catch (err) {
       setError("An unexpected error occurred");
@@ -97,44 +96,6 @@ export function AddLinkForm({
       setValidating(false);
       setProcessingVideo(false);
     }
-  };
-
-  const handleManualVideoSubmit = async () => {
-    if (!pendingLinkId || !manualVideoUrl.trim()) return;
-
-    setProcessingVideo(true);
-    setVideoError(null);
-
-    try {
-      await processVideo.mutateAsync({
-        linkId: pendingLinkId,
-        tweetUrl: pendingTweetUrl || "",
-        manualVideoUrl: manualVideoUrl.trim(),
-      });
-
-      // Success - reset everything
-      setUrl("");
-      setManualVideoUrl("");
-      setShowManualVideoInput(false);
-      setPendingLinkId(null);
-      setPendingTweetUrl(null);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to process video";
-      setVideoError(errorMessage);
-    } finally {
-      setProcessingVideo(false);
-    }
-  };
-
-  const handleSkipVideo = () => {
-    // User chose to skip video upload - just reset the form
-    setUrl("");
-    setManualVideoUrl("");
-    setShowManualVideoInput(false);
-    setPendingLinkId(null);
-    setPendingTweetUrl(null);
-    setVideoError(null);
   };
 
   const isValidUrl =
@@ -155,16 +116,12 @@ export function AddLinkForm({
               onChange={(e) => {
                 setUrl(e.target.value);
                 setError(null);
-                setVideoError(null);
-                setShowManualVideoInput(false);
               }}
               disabled={isProcessing}
             />
           </div>
 
           <div className="flex gap-2">
-          
-
             <Button type="submit" disabled={!isValidUrl || isProcessing}>
               {validating ? (
                 <span className="animate-pulse">Checking...</span>
@@ -182,75 +139,6 @@ export function AddLinkForm({
             </Button>
           </div>
         </div>
-
-        {/* Manual Video URL Input Fallback */}
-        {showManualVideoInput && (
-          <div
-            className={`animate-in fade-in slide-in-from-top-2 border rounded-lg p-3 ${
-              isDark
-                ? "bg-blue-950/50 border-blue-800"
-                : "bg-blue-50 border-blue-200"
-            }`}
-          >
-            <p
-              className={`text-sm mb-2 ${
-                isDark ? "text-blue-200" : "text-blue-800"
-              }`}
-            >
-              Couldn&apos;t auto-extract the video. To save the actual GIF/video:
-            </p>
-            <ol
-              className={`text-xs mb-3 list-decimal list-inside space-y-1 ${
-                isDark ? "text-blue-300" : "text-blue-700"
-              }`}
-            >
-              <li>Open the tweet in a new tab</li>
-              <li>Right-click on the GIF/video</li>
-              <li>Select &quot;Copy video address&quot;</li>
-              <li>Paste it below</li>
-            </ol>
-            <div className="flex gap-2 items-center">
-              <Input
-                type="url"
-                placeholder="Paste video URL (e.g., video.twimg.com/...)"
-                value={manualVideoUrl}
-                onChange={(e) => setManualVideoUrl(e.target.value)}
-                className="text-sm"
-                disabled={processingVideo}
-              />
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleManualVideoSubmit}
-                disabled={!manualVideoUrl.trim() || processingVideo}
-              >
-                {processingVideo ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "Save"
-                )}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={handleSkipVideo}
-                disabled={processingVideo}
-              >
-                Skip
-              </Button>
-            </div>
-            {videoError && (
-              <p
-                className={`text-xs mt-2 ${
-                  isDark ? "text-red-400" : "text-red-600"
-                }`}
-              >
-                {videoError}
-              </p>
-            )}
-          </div>
-        )}
       </div>
 
       {(error || (url && !isValidUrl)) && (

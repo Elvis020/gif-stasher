@@ -136,6 +136,17 @@ export async function extractVideoFromTweet(tweetUrl: string): Promise<VideoExtr
         if (data.mediaDetails) {
             for (const media of data.mediaDetails) {
                 if (media.type === "video" || media.type === "animated_gif") {
+                    // Check duration - reject videos longer than 5 seconds
+                    const durationMs = media.video_info?.duration_millis || 0;
+                    const MAX_DURATION_MS = 5000; // 5 seconds
+                    if (durationMs > MAX_DURATION_MS) {
+                        console.log(`Video too long (${(durationMs / 1000).toFixed(1)}s). Maximum is 5 seconds.`);
+                        return {
+                            success: false,
+                            error: "Only short GIFs allowed",
+                        };
+                    }
+
                     const variants = media.video_info?.variants || [];
                     const mp4Variants = variants
                         .filter((v: { content_type: string }) => v.content_type === "video/mp4")
@@ -217,6 +228,13 @@ export async function downloadAndUploadVideo(
             throw new Error(`Failed to download: ${response.status}`);
         }
 
+        // Check content-type to reject static images
+        const contentType = response.headers.get("content-type") || "";
+        const imageTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/bmp"];
+        if (imageTypes.some(type => contentType.includes(type))) {
+            throw new Error("Static images are not supported. Only videos and GIFs can be saved.");
+        }
+
         const arrayBuffer = await response.arrayBuffer();
         const videoBuffer = Buffer.from(arrayBuffer);
         const videoSize = videoBuffer.length;
@@ -246,6 +264,13 @@ export async function downloadAndUploadVideo(
 
             // Read the converted GIF
             const gifBuffer = await readFile(tempGifPath);
+            const gifSize = gifBuffer.length;
+
+            // Check output GIF size limit (6MB max to save storage)
+            const MAX_GIF_SIZE = 6 * 1024 * 1024; // 6MB
+            if (gifSize > MAX_GIF_SIZE) {
+                throw new Error(`GIF too large (${(gifSize / 1024 / 1024).toFixed(1)}MB). Maximum is 6MB.`);
+            }
 
             // Upload to Supabase Storage
             const { error: uploadError } = await supabase.storage
@@ -266,7 +291,6 @@ export async function downloadAndUploadVideo(
                 .getPublicUrl(filePath);
 
             const publicUrl = urlData.publicUrl;
-            const gifSize = gifBuffer.length;
 
             // Update link record
             await supabase
@@ -318,10 +342,22 @@ export async function processManualVideoUrl(
     manualVideoUrl: string,
     linkId: string
 ): Promise<UploadResult> {
+    const urlLower = manualVideoUrl.toLowerCase();
+
+    // Block static image URLs
+    const imagePatterns = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", "pbs.twimg.com/media"];
+    const looksLikeImage = imagePatterns.some((pattern) =>
+        urlLower.includes(pattern)
+    );
+
+    if (looksLikeImage) {
+        return { success: false, error: "Static images are not supported. Please provide a video/GIF URL." };
+    }
+
     // Validate it looks like a video URL
     const videoPatterns = [".mp4", ".webm", ".gif", "video.twimg.com"];
     const looksLikeVideo = videoPatterns.some((pattern) =>
-        manualVideoUrl.toLowerCase().includes(pattern)
+        urlLower.includes(pattern)
     );
 
     if (!looksLikeVideo) {
