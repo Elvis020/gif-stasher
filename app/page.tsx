@@ -133,9 +133,7 @@ export default function HomePage() {
           onNewFolder={openNewFolderModal}
           isLoading={createLink.isPending}
           onSaveSuccess={() => {
-            if (!openFolderId) {
-              setOpenFolderId("all");
-            }
+            setOpenFolderId("unsorted");
           }}
         />
 

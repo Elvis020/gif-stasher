@@ -39,15 +39,13 @@ export function FolderDrawer({
   };
 
   const getLinksForFolder = (folderId: string) => {
-    if (folderId === "all") return links;
     if (folderId === "unsorted") return links.filter((l) => !l.folder_id);
     return links.filter((l) => l.folder_id === folderId);
   };
 
   const folderItems = [
-    { id: "all", name: "All", count: links.length },
-    ...folders.map((f) => ({ id: f.id, name: f.name, count: linkCounts[f.id] || 0, folder: f })),
     { id: "unsorted", name: "Unsorted", count: linkCounts["unsorted"] || 0 },
+    ...folders.map((f) => ({ id: f.id, name: f.name, count: linkCounts[f.id] || 0, folder: f })),
   ] as Array<{ id: string; name: string; count: number; folder?: Folder }>;
 
   return (
