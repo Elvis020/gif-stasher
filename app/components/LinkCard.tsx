@@ -234,7 +234,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
       {/* Video/Thumbnail Preview - tall cards for better visibility */}
       <div
         className={clsx(
-          "aspect-[3/4] sm:aspect-[3/4] lg:aspect-[4/5] relative flex items-center justify-center transition-opacity",
+          "aspect-[15/16] lg:aspect-[10/11] relative flex items-center justify-center transition-opacity",
           !link.thumbnail &&
             !hasVideo &&
             `bg-gradient-to-br ${getGradient(link.url)}`,

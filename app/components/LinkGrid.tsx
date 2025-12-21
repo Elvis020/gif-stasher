@@ -26,7 +26,7 @@ export function LinkGrid({
         {[...Array(12)].map((_, i) => (
           <div
             key={i}
-            className="aspect-[3/4] sm:aspect-[3/4] lg:aspect-[4/5] bg-stone-200 rounded-xl animate-pulse"
+            className="aspect-[15/16] lg:aspect-[10/11] bg-stone-200 rounded-xl animate-pulse"
           />
         ))}
       </div>
