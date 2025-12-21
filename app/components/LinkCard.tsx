@@ -10,7 +10,6 @@ import {
   AlertCircle,
   RefreshCw,
   Download,
-  Clipboard,
   Play,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -36,9 +35,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
   const { isDark } = useTheme();
   const [isHovering, setIsHovering] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [copiedImage, setCopiedImage] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isCopyingImage, setIsCopyingImage] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -54,52 +51,6 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
       setIsDeleting(false);
     }
   };
-
-  const handleCopyImageToClipboard = useCallback(async () => {
-    if (!link.video_url || isCopyingImage) return;
-
-    setIsCopyingImage(true);
-    try {
-      const response = await fetch(link.video_url);
-      const blob = await response.blob();
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-
-      await new Promise<void>((resolve, reject) => {
-        img.onload = async () => {
-          try {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext("2d");
-            ctx?.drawImage(img, 0, 0);
-
-            canvas.toBlob(async (pngBlob) => {
-              if (pngBlob) {
-                await navigator.clipboard.write([
-                  new ClipboardItem({ "image/png": pngBlob }),
-                ]);
-                setCopiedImage(true);
-                setTimeout(() => setCopiedImage(false), 2000);
-              }
-              resolve();
-            }, "image/png");
-          } catch (err) {
-            reject(err);
-          }
-        };
-        img.onerror = reject;
-        img.src = URL.createObjectURL(blob);
-      });
-    } catch (err) {
-      console.error("Failed to copy image to clipboard:", err);
-      await navigator.clipboard.writeText(link.video_url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } finally {
-      setIsCopyingImage(false);
-    }
-  }, [link.video_url, isCopyingImage]);
 
   const triggerDownload = useCallback(async () => {
     if (!link.video_url || isDownloading) return;
@@ -145,11 +96,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
 
       if (e.key.toLowerCase() === "c" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        if (e.shiftKey) {
-          handleCopyImageToClipboard();
-        } else {
-          handleCopyUrl();
-        }
+        handleCopyUrl();
       } else if (e.key.toLowerCase() === "d" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         triggerDownload();
@@ -158,7 +105,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isHovering, handleCopyImageToClipboard, triggerDownload]);
+  }, [isHovering, triggerDownload]);
 
   const getGradient = (url: string) => {
     const hash = url.split("").reduce((a, b) => a + b.charCodeAt(0), 0);
@@ -271,7 +218,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-0.5 flex-shrink-0">
+      <div className="flex items-center gap-1 flex-shrink-0">
         {/* Open tweet */}
         <a
           href={link.url}
@@ -279,52 +226,31 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
           className={clsx(
-            "p-2 rounded-lg transition-colors",
+            "p-2 rounded-xl transition-colors",
             isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
           )}
           title="Open tweet"
         >
-          <ExternalLink className="w-5 h-5" />
+          <ExternalLink className="w-6 h-6" />
         </a>
 
+        {/* Download */}
         {hasVideo && (
-          <>
-            {/* Copy image */}
-            <button
-              onClick={(e) => { e.stopPropagation(); handleCopyImageToClipboard(); }}
-              disabled={isCopyingImage}
-              className={clsx(
-                "p-2 rounded-lg transition-colors",
-                isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
-              )}
-              title="Copy image"
-            >
-              {isCopyingImage ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : copiedImage ? (
-                <Check className="w-5 h-5 text-green-500" />
-              ) : (
-                <Clipboard className="w-5 h-5" />
-              )}
-            </button>
-
-            {/* Download */}
-            <button
-              onClick={(e) => { e.stopPropagation(); triggerDownload(); }}
-              disabled={isDownloading}
-              className={clsx(
-                "p-2 rounded-lg transition-colors",
-                isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
-              )}
-              title="Download"
-            >
-              {isDownloading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Download className="w-5 h-5" />
-              )}
-            </button>
-          </>
+          <button
+            onClick={(e) => { e.stopPropagation(); triggerDownload(); }}
+            disabled={isDownloading}
+            className={clsx(
+              "p-2 rounded-xl transition-colors",
+              isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
+            )}
+            title="Download"
+          >
+            {isDownloading ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <Download className="w-6 h-6" />
+            )}
+          </button>
         )}
 
         {/* Retry if failed */}
@@ -333,15 +259,15 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
             onClick={(e) => { e.stopPropagation(); handleRetry(); }}
             disabled={retryVideo.isPending}
             className={clsx(
-              "p-2 rounded-lg transition-colors",
+              "p-2 rounded-xl transition-colors",
               isDark ? "hover:bg-stone-700 text-amber-500" : "hover:bg-stone-100 text-amber-600"
             )}
             title="Retry download"
           >
             {retryVideo.isPending ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
-              <RefreshCw className="w-5 h-5" />
+              <RefreshCw className="w-6 h-6" />
             )}
           </button>
         )}
@@ -350,15 +276,15 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
         <button
           onClick={handleCopyUrl}
           className={clsx(
-            "p-2 rounded-lg transition-colors",
+            "p-2 rounded-xl transition-colors",
             isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
           )}
           title="Copy URL"
         >
           {copied ? (
-            <Check className="w-5 h-5 text-green-500" />
+            <Check className="w-6 h-6 text-green-500" />
           ) : (
-            <Copy className="w-5 h-5" />
+            <Copy className="w-6 h-6" />
           )}
         </button>
 
@@ -368,12 +294,12 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
             <button
               onClick={(e) => e.stopPropagation()}
               className={clsx(
-                "p-2 rounded-lg transition-colors",
+                "p-2 rounded-xl transition-colors",
                 isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
               )}
               title="Move to folder"
             >
-              <FolderInput className="w-5 h-5" />
+              <FolderInput className="w-6 h-6" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
@@ -400,15 +326,15 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
           onClick={(e) => { e.stopPropagation(); handleDelete(); }}
           disabled={isDeleting}
           className={clsx(
-            "p-2 rounded-lg transition-colors",
+            "p-2 rounded-xl transition-colors",
             isDark ? "hover:bg-stone-700 text-red-400" : "hover:bg-stone-100 text-red-500"
           )}
           title="Delete"
         >
           {isDeleting ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-6 h-6 animate-spin" />
           ) : (
-            <Trash2 className="w-5 h-5" />
+            <Trash2 className="w-6 h-6" />
           )}
         </button>
       </div>
