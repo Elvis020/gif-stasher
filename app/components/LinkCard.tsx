@@ -10,7 +10,6 @@ import {
   AlertCircle,
   RefreshCw,
   Download,
-  MoreHorizontal,
   Clipboard,
   Play,
 } from "lucide-react";
@@ -23,11 +22,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
 } from "@/app/components/ui/dropdown-menu";
 
 interface LinkCardProps {
@@ -276,9 +271,25 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 flex-shrink-0">
+      <div className="flex items-center gap-0.5 flex-shrink-0">
+        {/* Open tweet */}
+        <a
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className={clsx(
+            "p-2 rounded-lg transition-colors",
+            isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
+          )}
+          title="Open tweet"
+        >
+          <ExternalLink className="w-5 h-5" />
+        </a>
+
         {hasVideo && (
           <>
+            {/* Copy image */}
             <button
               onClick={(e) => { e.stopPropagation(); handleCopyImageToClipboard(); }}
               disabled={isCopyingImage}
@@ -289,14 +300,15 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               title="Copy image"
             >
               {isCopyingImage ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : copiedImage ? (
-                <Check className="w-4 h-4 text-green-500" />
+                <Check className="w-5 h-5 text-green-500" />
               ) : (
-                <Clipboard className="w-4 h-4" />
+                <Clipboard className="w-5 h-5" />
               )}
             </button>
 
+            {/* Download */}
             <button
               onClick={(e) => { e.stopPropagation(); triggerDownload(); }}
               disabled={isDownloading}
@@ -307,14 +319,34 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               title="Download"
             >
               {isDownloading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <Download className="w-4 h-4" />
+                <Download className="w-5 h-5" />
               )}
             </button>
           </>
         )}
 
+        {/* Retry if failed */}
+        {hasFailed && (
+          <button
+            onClick={(e) => { e.stopPropagation(); handleRetry(); }}
+            disabled={retryVideo.isPending}
+            className={clsx(
+              "p-2 rounded-lg transition-colors",
+              isDark ? "hover:bg-stone-700 text-amber-500" : "hover:bg-stone-100 text-amber-600"
+            )}
+            title="Retry download"
+          >
+            {retryVideo.isPending ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <RefreshCw className="w-5 h-5" />
+            )}
+          </button>
+        )}
+
+        {/* Copy URL */}
         <button
           onClick={handleCopyUrl}
           className={clsx(
@@ -324,91 +356,61 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
           title="Copy URL"
         >
           {copied ? (
-            <Check className="w-4 h-4 text-green-500" />
+            <Check className="w-5 h-5 text-green-500" />
           ) : (
-            <Copy className="w-4 h-4" />
+            <Copy className="w-5 h-5" />
           )}
         </button>
 
+        {/* Move to folder */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
+              onClick={(e) => e.stopPropagation()}
               className={clsx(
                 "p-2 rounded-lg transition-colors",
                 isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
               )}
+              title="Move to folder"
             >
-              <MoreHorizontal className="w-4 h-4" />
+              <FolderInput className="w-5 h-5" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem asChild>
-              <a
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Open tweet
-              </a>
-            </DropdownMenuItem>
-
-            {hasFailed && (
-              <DropdownMenuItem
-                onClick={() => handleRetry()}
-                disabled={retryVideo.isPending}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                {retryVideo.isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                )}
-                Retry download
-              </DropdownMenuItem>
-            )}
-
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="flex items-center gap-2 cursor-pointer">
-                <FolderInput className="w-3.5 h-3.5" />
-                Move
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem
-                  onClick={() => onMove(link.id, null)}
-                  className={clsx("cursor-pointer", !link.folder_id && "text-amber-600")}
-                >
-                  No folder
-                </DropdownMenuItem>
-                {folders.map((folder) => (
-                  <DropdownMenuItem
-                    key={folder.id}
-                    onClick={() => onMove(link.id, folder.id)}
-                    className={clsx("cursor-pointer", link.folder_id === folder.id && "text-amber-600")}
-                  >
-                    {folder.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-
-            <DropdownMenuSeparator />
-
             <DropdownMenuItem
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
+              onClick={() => onMove(link.id, null)}
+              className={clsx("cursor-pointer", !link.folder_id && "text-amber-600")}
             >
-              {isDeleting ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="w-3.5 h-3.5" />
-              )}
-              Delete
+              No folder
             </DropdownMenuItem>
+            {folders.map((folder) => (
+              <DropdownMenuItem
+                key={folder.id}
+                onClick={() => onMove(link.id, folder.id)}
+                className={clsx("cursor-pointer", link.folder_id === folder.id && "text-amber-600")}
+              >
+                {folder.name}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Delete */}
+        <button
+          onClick={(e) => { e.stopPropagation(); handleDelete(); }}
+          disabled={isDeleting}
+          className={clsx(
+            "p-2 rounded-lg transition-colors",
+            isDark ? "hover:bg-stone-700 text-red-400" : "hover:bg-stone-100 text-red-500"
+          )}
+          title="Delete"
+        >
+          {isDeleting ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <Trash2 className="w-5 h-5" />
+          )}
+        </button>
       </div>
     </div>
   );
