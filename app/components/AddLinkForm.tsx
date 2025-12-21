@@ -31,10 +31,8 @@ export function AddLinkForm({
 }: AddLinkFormProps) {
   const { isDark } = useTheme();
   const [url, setUrl] = useState("");
-  const [folderId, setFolderId] = useState<string>("");
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [processingVideo, setProcessingVideo] = useState(false);
 
   const processVideo = useProcessVideo();
   const deleteLink = useDeleteLink();
@@ -47,7 +45,6 @@ export function AddLinkForm({
     setValidating(true);
 
     try {
-      // Step 1: Validate the tweet
       const result = await validateTwitterGif(url.trim());
 
       if (!result.isValid) {
@@ -56,35 +53,20 @@ export function AddLinkForm({
         return;
       }
 
-      // Step 2: Create the link record
-      const createdLink = await onSubmit(
-        url.trim(),
-        folderId || null,
-        result.thumbnail
-      );
-
       setValidating(false);
-      setProcessingVideo(true);
-
-      // Open folder immediately after link is created
+      const createdLink = await onSubmit(url.trim(), null, result.thumbnail);
       onSaveSuccess?.();
 
-      // Step 3: Try to extract and upload video
       try {
         await processVideo.mutateAsync({
           linkId: createdLink.id,
           tweetUrl: url.trim(),
         });
-
-        // Success - reset form
         setUrl("");
-        setProcessingVideo(false);
       } catch (videoErr) {
-        // Video extraction failed - delete the link and show error
         const errorMessage =
           videoErr instanceof Error ? videoErr.message : "Video extraction failed";
 
-        // Delete the partially created link
         try {
           await deleteLink.mutateAsync(createdLink);
         } catch (deleteErr) {
@@ -92,19 +74,15 @@ export function AddLinkForm({
         }
 
         toast.error(errorMessage);
-        setProcessingVideo(false);
-        // Keep URL in input so user can try again or copy it
       }
     } catch (err) {
       setError("An unexpected error occurred");
       console.error(err);
       setValidating(false);
-      setProcessingVideo(false);
     }
   };
 
   const handleInputClick = async () => {
-    // Auto-paste from clipboard if input is empty
     if (url.trim() || isProcessing) return;
 
     try {
@@ -113,7 +91,7 @@ export function AddLinkForm({
         setUrl(clipboardText.trim());
       }
     } catch {
-      // Clipboard access denied or not available - ignore silently
+      // Clipboard access denied - ignore
     }
   };
 
@@ -121,7 +99,7 @@ export function AddLinkForm({
     url.trim().length > 0 &&
     (url.includes("twitter.com") || url.includes("x.com"));
 
-  const isProcessing = validating || isLoading || processingVideo;
+  const isProcessing = validating || isLoading || processVideo.isPending;
 
   return (
     <form onSubmit={handleSubmit} className="mb-8">
@@ -162,7 +140,7 @@ export function AddLinkForm({
             <Button type="submit" disabled={!isValidUrl || isProcessing}>
               {validating ? (
                 <span className="animate-pulse">Checking...</span>
-              ) : processingVideo ? (
+              ) : processVideo.isPending ? (
                 <>
                   <Loader2 className="w-[1.125rem] h-[1.125rem] animate-spin" />
                   <span className="hidden sm:inline">Saving...</span>
