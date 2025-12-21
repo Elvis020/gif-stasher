@@ -1,18 +1,6 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
-import { exec } from "child_process";
-import { promisify } from "util";
-import { writeFile, unlink, readFile } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
-
-const execAsync = promisify(exec);
-
-// Get ffmpeg path - use system ffmpeg installed via Homebrew
-function getFFmpegPath(): string {
-    return "ffmpeg";
-}
 
 // Server-side Supabase client with service role for storage operations
 function getServerSupabase() {
@@ -195,6 +183,7 @@ export async function extractVideoFromTweet(tweetUrl: string): Promise<VideoExtr
 }
 
 // Download video and upload to Supabase Storage
+// Stores as MP4 directly (no ffmpeg conversion needed)
 export async function downloadAndUploadVideo(
     videoSourceUrl: string,
     linkId: string,
@@ -239,87 +228,55 @@ export async function downloadAndUploadVideo(
         const videoBuffer = Buffer.from(arrayBuffer);
         const videoSize = videoBuffer.length;
 
-        // Check size limit (50MB for input video)
-        if (videoSize > 50 * 1024 * 1024) {
-            throw new Error("Video exceeds 50MB limit");
+        // Check size limit (15MB for video)
+        const MAX_VIDEO_SIZE = 15 * 1024 * 1024; // 15MB
+        if (videoSize > MAX_VIDEO_SIZE) {
+            throw new Error(`Video too large (${(videoSize / 1024 / 1024).toFixed(1)}MB). Maximum is 15MB.`);
         }
 
         // Generate short unique filename
         const randomId = Math.random().toString(36).substring(2, 8); // 6 chars
-        const tempVideoPath = join(tmpdir(), `${randomId}_input.mp4`);
-        const tempGifPath = join(tmpdir(), `${randomId}_output.gif`);
-        const fileName = `${randomId}.gif`;
+        const fileName = `${randomId}.mp4`;
         const filePath = fileName;
 
-        try {
-            // Write video to temp file
-            await writeFile(tempVideoPath, videoBuffer);
+        // Upload MP4 directly to Supabase Storage (no conversion needed)
+        const { error: uploadError } = await supabase.storage
+            .from("Videos")
+            .upload(filePath, videoBuffer, {
+                contentType: "video/mp4",
+                cacheControl: "31536000", // 1 year cache
+                upsert: false,
+            });
 
-            // Convert MP4 to GIF using ffmpeg
-            // -vf: video filter with fps=15 (reduce frames), scale to max 480px width, optimize palette
-            const ffmpeg = getFFmpegPath();
-            const ffmpegCmd = `"${ffmpeg}" -i "${tempVideoPath}" -vf "fps=15,scale='min(480,iw)':-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer" -loop 0 "${tempGifPath}" -y`;
-
-            await execAsync(ffmpegCmd, { timeout: 60000 });
-
-            // Read the converted GIF
-            const gifBuffer = await readFile(tempGifPath);
-            const gifSize = gifBuffer.length;
-
-            // Check output GIF size limit (8MB max to save storage)
-            const MAX_GIF_SIZE = 8 * 1024 * 1024; // 8MB
-            if (gifSize > MAX_GIF_SIZE) {
-                throw new Error(`GIF too large (${(gifSize / 1024 / 1024).toFixed(1)}MB). Maximum is 8MB.`);
-            }
-
-            // Upload to Supabase Storage
-            const { error: uploadError } = await supabase.storage
-                .from("Videos")
-                .upload(filePath, gifBuffer, {
-                    contentType: "image/gif",
-                    cacheControl: "31536000", // 1 year cache
-                    upsert: false,
-                });
-
-            if (uploadError) {
-                throw new Error(`Upload failed: ${uploadError.message}`);
-            }
-
-            // Get public URL
-            const { data: urlData } = supabase.storage
-                .from("Videos")
-                .getPublicUrl(filePath);
-
-            const publicUrl = urlData.publicUrl;
-
-            // Update link record
-            await supabase
-                .from("links")
-                .update({
-                    video_url: publicUrl,
-                    video_path: filePath,
-                    video_size: gifSize,
-                    video_status: "uploaded",
-                    video_error: null,
-                })
-                .eq("id", linkId);
-
-            return {
-                success: true,
-                videoUrl: publicUrl,
-                videoPath: filePath,
-                videoSize: gifSize,
-            };
-        } catch (conversionError) {
-            // Clean up temp files on error
-            await unlink(tempVideoPath).catch(() => {});
-            await unlink(tempGifPath).catch(() => {});
-            throw conversionError;
-        } finally {
-            // Always try to clean up
-            await unlink(tempVideoPath).catch(() => {});
-            await unlink(tempGifPath).catch(() => {});
+        if (uploadError) {
+            throw new Error(`Upload failed: ${uploadError.message}`);
         }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+            .from("Videos")
+            .getPublicUrl(filePath);
+
+        const publicUrl = urlData.publicUrl;
+
+        // Update link record
+        await supabase
+            .from("links")
+            .update({
+                video_url: publicUrl,
+                video_path: filePath,
+                video_size: videoSize,
+                video_status: "uploaded",
+                video_error: null,
+            })
+            .eq("id", linkId);
+
+        return {
+            success: true,
+            videoUrl: publicUrl,
+            videoPath: filePath,
+            videoSize: videoSize,
+        };
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 

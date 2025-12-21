@@ -116,7 +116,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${link.id.slice(0, 8)}.gif`;
+      a.download = `${link.id.slice(0, 8)}.mp4`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
