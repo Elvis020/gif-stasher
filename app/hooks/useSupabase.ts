@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Folder, Link } from "@/types";
+import {
+    extractVideoFromTweet,
+    downloadAndUploadVideo,
+    processManualVideoUrl,
+    deleteVideoFromStorage,
+} from "@/app/actions";
 
 // --- Folders ---
 
@@ -94,10 +100,20 @@ export function useLinks() {
 export function useCreateLink() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async ({ url, folder_id }: { url: string; folder_id: string | null }) => {
+        mutationFn: async ({
+            url,
+            folder_id,
+            thumbnail,
+            video_status = "pending",
+        }: {
+            url: string;
+            folder_id: string | null;
+            thumbnail?: string | null;
+            video_status?: "pending" | null;
+        }) => {
             const { data, error } = await supabase
                 .from("links")
-                .insert([{ url, folder_id }])
+                .insert([{ url, folder_id, thumbnail, video_status }])
                 .select()
                 .single();
 
@@ -133,9 +149,73 @@ export function useMoveLink() {
 export function useDeleteLink() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (id: string) => {
-            const { error } = await supabase.from("links").delete().eq("id", id);
+        mutationFn: async (link: Link) => {
+            // Delete video from storage if exists
+            if (link.video_path) {
+                await deleteVideoFromStorage(link.video_path);
+            }
+
+            // Delete link record
+            const { error } = await supabase.from("links").delete().eq("id", link.id);
             if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["links"] });
+        },
+    });
+}
+
+// --- Video Processing ---
+
+export function useProcessVideo() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({
+            linkId,
+            tweetUrl,
+            manualVideoUrl,
+        }: {
+            linkId: string;
+            tweetUrl: string;
+            manualVideoUrl?: string;
+        }) => {
+            // If manual URL provided, use it directly
+            if (manualVideoUrl) {
+                return processManualVideoUrl(manualVideoUrl, linkId);
+            }
+
+            // Try automatic extraction
+            const extraction = await extractVideoFromTweet(tweetUrl);
+            if (!extraction.success || !extraction.videoUrl) {
+                throw new Error(extraction.error || "Could not extract video");
+            }
+
+            // Pass thumbnail from extraction to save it
+            return downloadAndUploadVideo(extraction.videoUrl, linkId, extraction.thumbnail);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["links"] });
+        },
+    });
+}
+
+// Retry failed video processing
+export function useRetryVideo() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (link: Link) => {
+            // Always try extraction to get thumbnail
+            const extraction = await extractVideoFromTweet(link.url);
+
+            if (!link.original_video_url && (!extraction.success || !extraction.videoUrl)) {
+                throw new Error(extraction.error || "Could not extract video");
+            }
+
+            // Use original video URL if available, otherwise use extracted
+            const videoUrl = link.original_video_url || extraction.videoUrl!;
+            return downloadAndUploadVideo(videoUrl, link.id, extraction.thumbnail);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["links"] });

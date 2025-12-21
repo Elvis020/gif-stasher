@@ -7,7 +7,7 @@ import { EmptyState } from "./EmptyState";
 interface LinkGridProps {
   links: Link[];
   folders: Folder[];
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<void>;
   onMove: (linkId: string, folderId: string | null) => void;
   isLoading?: boolean;
 }

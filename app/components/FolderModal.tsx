@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Folder } from "@/types";
-import { Button, Input, Modal } from "./ui";
+import { Button, Input, Modal } from "./custom-ui";
 
 interface FolderModalProps {
   isOpen: boolean;

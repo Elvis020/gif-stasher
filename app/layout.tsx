@@ -3,7 +3,6 @@ import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 
 import { Fredoka } from "next/font/google";
-// import { ThemeProvider } from "@/providers/theme-provider";
 
 const fredoka = Fredoka({
   subsets: ["latin"],

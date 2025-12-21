@@ -57,12 +57,24 @@ export default function HomePage() {
   const isLoading = foldersLoading || linksLoading;
 
   // Handlers
-  const handleAddLink = (url: string, folderId: string | null) => {
-    createLink.mutate({ url, folder_id: folderId });
+  const handleAddLink = async (
+    url: string,
+    folderId: string | null,
+    thumbnail?: string | null
+  ) => {
+    const link = await createLink.mutateAsync({
+      url,
+      folder_id: folderId,
+      thumbnail,
+    });
+    return link;
   };
 
-  const handleDeleteLink = (id: string) => {
-    deleteLink.mutate(id);
+  const handleDeleteLink = async (id: string) => {
+    const link = links.find((l) => l.id === id);
+    if (link) {
+      await deleteLink.mutateAsync(link);
+    }
   };
 
   const handleMoveLink = (linkId: string, folderId: string | null) => {
