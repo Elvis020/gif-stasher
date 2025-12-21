@@ -22,11 +22,11 @@ export function LinkGrid({
 }: LinkGridProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
-        {[...Array(12)].map((_, i) => (
+      <div className="space-y-2">
+        {[...Array(6)].map((_, i) => (
           <div
             key={i}
-            className="aspect-[15/16] lg:aspect-[10/11] bg-stone-200 rounded-xl animate-pulse"
+            className="h-24 bg-stone-200 dark:bg-stone-700 rounded-xl animate-pulse"
           />
         ))}
       </div>
@@ -38,26 +38,22 @@ export function LinkGrid({
   }
 
   return (
-    <motion.div
-      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5"
-      layout
-    >
+    <div className="space-y-2">
       <AnimatePresence mode="popLayout">
         {links.map((link) => (
           <motion.div
             key={link.id}
             layout
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{
               opacity: 0,
-              scale: 0.8,
-              transition: { duration: 0.2 }
+              x: -20,
+              transition: { duration: 0.2 },
             }}
             transition={{
-              layout: { type: "spring", stiffness: 300, damping: 30 },
+              layout: { type: "spring", stiffness: 500, damping: 35 },
               opacity: { duration: 0.2 },
-              scale: { duration: 0.2 }
             }}
           >
             <LinkCard
@@ -69,6 +65,6 @@ export function LinkGrid({
           </motion.div>
         ))}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }

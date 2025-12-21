@@ -12,6 +12,7 @@ import {
   Download,
   MoreHorizontal,
   Clipboard,
+  Play,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { clsx } from "clsx";
@@ -44,22 +45,10 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCopyingImage, setIsCopyingImage] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [showReadyIndicator, setShowReadyIndicator] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const prevVideoUrl = useRef(link.video_url);
 
   const retryVideo = useRetryVideo();
-
-  // Show ready indicator briefly when video transitions from null to uploaded
-  useEffect(() => {
-    // Only show if video_url was previously empty and now has a value
-    if (!prevVideoUrl.current && link.video_url) {
-      setShowReadyIndicator(true);
-      const timer = setTimeout(() => setShowReadyIndicator(false), 3000);
-      return () => clearTimeout(timer);
-    }
-    prevVideoUrl.current = link.video_url;
-  }, [link.video_url]);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -71,7 +60,6 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
     }
   };
 
-  // Copy actual GIF image to clipboard
   const handleCopyImageToClipboard = useCallback(async () => {
     if (!link.video_url || isCopyingImage) return;
 
@@ -79,8 +67,6 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
     try {
       const response = await fetch(link.video_url);
       const blob = await response.blob();
-
-      // Try to copy as image - convert to PNG for better clipboard support
       const img = new Image();
       img.crossOrigin = "anonymous";
 
@@ -112,7 +98,6 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
       });
     } catch (err) {
       console.error("Failed to copy image to clipboard:", err);
-      // Fallback to copying URL
       await navigator.clipboard.writeText(link.video_url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -121,7 +106,6 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
     }
   }, [link.video_url, isCopyingImage]);
 
-  // Download handler without event (for keyboard shortcut)
   const triggerDownload = useCallback(async () => {
     if (!link.video_url || isDownloading) return;
 
@@ -144,35 +128,32 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
     }
   }, [link.video_url, link.id, isDownloading]);
 
-  // Copy URL handler without event (for keyboard shortcut)
-  const triggerCopyUrl = useCallback(async () => {
+  const handleCopyUrl = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const urlToCopy = link.video_url || link.url;
     await navigator.clipboard.writeText(urlToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [link.video_url, link.url]);
+  };
+
+  const handleRetry = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    retryVideo.mutate(link);
+  };
 
   // Keyboard shortcuts when hovering
   useEffect(() => {
     if (!isHovering) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if typing in an input
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       if (e.key.toLowerCase() === "c" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         if (e.shiftKey) {
-          // Shift+C: Copy image to clipboard
           handleCopyImageToClipboard();
         } else {
-          // C: Copy URL
-          triggerCopyUrl();
+          handleCopyUrl();
         }
       } else if (e.key.toLowerCase() === "d" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
@@ -182,9 +163,8 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isHovering, handleCopyImageToClipboard, triggerCopyUrl, triggerDownload]);
+  }, [isHovering, handleCopyImageToClipboard, triggerDownload]);
 
-  // Generate a placeholder gradient based on URL
   const getGradient = (url: string) => {
     const hash = url.split("").reduce((a, b) => a + b.charCodeAt(0), 0);
     const gradients = [
@@ -198,57 +178,52 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
     return gradients[hash % gradients.length];
   };
 
-  const handleCopyUrl = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const urlToCopy = link.video_url || link.url;
-    await navigator.clipboard.writeText(urlToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleRetry = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    retryVideo.mutate(link);
-  };
-
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    await triggerDownload();
-  };
-
   const hasVideo = !!link.video_url;
-  const isProcessing =
-    link.video_status === "pending" || link.video_status === "downloading";
+  const isProcessing = link.video_status === "pending" || link.video_status === "downloading";
   const hasFailed = link.video_status === "failed";
+
+  // Format date for display
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
 
   return (
     <div
       className={clsx(
-        "group relative rounded-2xl overflow-hidden shadow-sm",
-        "transition-all duration-500 ease-out",
+        "group flex items-center gap-3 p-2 rounded-xl",
+        "transition-all duration-200",
         isDark
-          ? "bg-stone-800 border border-stone-700"
-          : "bg-white border border-stone-200",
-        isDeleting
-          ? "opacity-50 pointer-events-none scale-95"
-          : isDark
-            ? "hover:shadow-2xl hover:shadow-stone-900/50 hover:border-stone-600 hover:-translate-y-1 hover:scale-[1.02]"
-            : "hover:shadow-2xl hover:border-stone-300 hover:-translate-y-1 hover:scale-[1.02]",
+          ? "bg-stone-800/50 hover:bg-stone-800 border border-stone-700/50 hover:border-stone-600"
+          : "bg-white/50 hover:bg-white border border-stone-200/50 hover:border-stone-300",
+        isDeleting && "opacity-50 pointer-events-none"
       )}
       onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
+      onMouseLeave={() => {
+        setIsHovering(false);
+        setIsPlaying(false);
+      }}
     >
-      {/* Video/Thumbnail Preview - tall cards for better visibility */}
+      {/* Thumbnail */}
       <div
         className={clsx(
-          "aspect-[15/16] lg:aspect-[10/11] relative flex items-center justify-center transition-opacity",
-          !link.thumbnail &&
-            !hasVideo &&
-            `bg-gradient-to-br ${getGradient(link.url)}`,
+          "relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden flex-shrink-0",
+          "flex items-center justify-center cursor-pointer",
+          !link.thumbnail && !hasVideo && `bg-gradient-to-br ${getGradient(link.url)}`
         )}
+        onClick={() => hasVideo && setIsPlaying(!isPlaying)}
       >
-        {/* Show video on hover if available */}
-        {hasVideo && isHovering ? (
+        {hasVideo && isPlaying ? (
           <video
             ref={videoRef}
             src={link.video_url!}
@@ -259,323 +234,77 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
             playsInline
           />
         ) : link.thumbnail ? (
-          <div
-            className="w-full h-full bg-cover bg-center"
-            style={{ backgroundImage: `url(${link.thumbnail})` }}
-          />
-        ) : (
-          <span className="text-white/30 text-xl sm:text-2xl font-bold">
-            GIF
-          </span>
-        )}
-
-        {/* Video status overlay */}
-        {isProcessing && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <div className="text-center text-white">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-1" />
-              <span className="text-xs">
-                {link.video_status === "pending"
-                  ? "Waiting..."
-                  : "Downloading..."}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Deletion overlay */}
-        {isDeleting && (
-          <div className="absolute inset-0 bg-red-900/70 flex items-center justify-center z-10">
-            <div className="text-center text-white">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-1" />
-              <span className="text-xs">Deleting...</span>
-            </div>
-          </div>
-        )}
-
-        {/* Failed status indicator */}
-        {hasFailed && !isHovering && (
-          <div
-            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
-            title={link.video_error || "Failed"}
-          >
-            <AlertCircle className="w-3.5 h-3.5" />
-          </div>
-        )}
-
-        {/* Video ready indicator - shows briefly then fades */}
-        {showReadyIndicator && !isHovering && (
-          <div className="absolute top-2 left-2 bg-green-500 text-white rounded-full p-1">
-            <Check className="w-3.5 h-3.5" />
-          </div>
-        )}
-      </div>
-
-      {/* Card footer - Actions evenly distributed (mobile/tablet only) */}
-      <div
-        className={`p-2 flex lg:hidden items-center justify-evenly border-t ${
-          isDark ? "border-stone-700" : "border-stone-200"
-        }`}
-      >
-        {hasVideo ? (
           <>
-            {/* Copy Image */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCopyImageToClipboard();
-              }}
-              disabled={isCopyingImage}
-              className={`p-2 rounded-md transition-colors disabled:opacity-50 ${
-                isDark
-                  ? "hover:bg-stone-700 text-stone-400"
-                  : "hover:bg-stone-200 text-stone-600"
-              }`}
-              title={copiedImage ? "Copied!" : "Copy image"}
-            >
-              {isCopyingImage ? (
-                <Loader2 className="w-[1.125rem] h-[1.125rem] animate-spin" />
-              ) : copiedImage ? (
-                <Check className="w-[1.125rem] h-[1.125rem] text-green-500" />
-              ) : (
-                <Clipboard className="w-[1.125rem] h-[1.125rem]" />
-              )}
-            </button>
-
-            {/* Copy URL */}
-            <button
-              onClick={handleCopyUrl}
-              className={`p-2 rounded-md transition-colors ${
-                isDark
-                  ? "hover:bg-stone-700 text-stone-400"
-                  : "hover:bg-stone-200 text-stone-600"
-              }`}
-              title={copied ? "Copied!" : "Copy URL"}
-            >
-              {copied ? (
-                <Check className="w-[1.125rem] h-[1.125rem] text-green-500" />
-              ) : (
-                <Copy className="w-[1.125rem] h-[1.125rem]" />
-              )}
-            </button>
-
-            {/* Download */}
-            <button
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className={`p-2 rounded-md transition-colors disabled:opacity-50 ${
-                isDark
-                  ? "hover:bg-stone-700 text-stone-400"
-                  : "hover:bg-stone-200 text-stone-600"
-              }`}
-              title={isDownloading ? "Downloading..." : "Download"}
-            >
-              {isDownloading ? (
-                <Loader2 className="w-[1.125rem] h-[1.125rem] animate-spin" />
-              ) : (
-                <Download className="w-[1.125rem] h-[1.125rem]" />
-              )}
-            </button>
-
-            {/* More actions dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className={`p-2 rounded-md transition-colors ${
-                    isDark
-                      ? "hover:bg-stone-700 text-stone-400"
-                      : "hover:bg-stone-200 text-stone-500"
-                  }`}
-                  title="More actions"
-                >
-                  <MoreHorizontal className="w-[1.125rem] h-[1.125rem]" />
-                </button>
-              </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
-            {/* Open tweet */}
-            <DropdownMenuItem asChild>
-              <a
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Open tweet
-              </a>
-            </DropdownMenuItem>
-
-            {/* Retry for failed */}
-            {hasFailed && (
-              <DropdownMenuItem
-                onClick={handleRetry}
-                disabled={retryVideo.isPending}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                {retryVideo.isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                )}
-                Retry download
-              </DropdownMenuItem>
+            <img src={link.thumbnail} alt="" className="w-full h-full object-cover" />
+            {hasVideo && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Play className="w-6 h-6 text-white fill-white" />
+              </div>
             )}
-
-            {/* Move to folder submenu */}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="flex items-center gap-2 cursor-pointer">
-                <FolderInput className="w-3.5 h-3.5" />
-                Move
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem
-                  onClick={() => onMove(link.id, null)}
-                  className={clsx(
-                    "cursor-pointer",
-                    !link.folder_id && "text-amber-600",
-                  )}
-                >
-                  No folder
-                </DropdownMenuItem>
-                {folders.map((folder) => (
-                  <DropdownMenuItem
-                    key={folder.id}
-                    onClick={() => onMove(link.id, folder.id)}
-                    className={clsx(
-                      "cursor-pointer",
-                      link.folder_id === folder.id && "text-amber-600",
-                    )}
-                  >
-                    {folder.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-
-            <DropdownMenuSeparator />
-
-            {/* Delete */}
-            <DropdownMenuItem
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
-            >
-              {isDeleting ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="w-3.5 h-3.5" />
-              )}
-              {isDeleting ? "Deleting..." : "Delete"}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
           </>
         ) : (
-          /* When no video - just copy URL and dropdown */
-          <>
-            <button
-              onClick={handleCopyUrl}
-              className={`p-2 rounded-md transition-colors ${
-                isDark
-                  ? "hover:bg-stone-700 text-stone-400"
-                  : "hover:bg-stone-200 text-stone-600"
-              }`}
-              title={copied ? "Copied!" : "Copy tweet URL"}
-            >
-              {copied ? (
-                <Check className="w-[1.125rem] h-[1.125rem] text-green-500" />
-              ) : (
-                <Copy className="w-[1.125rem] h-[1.125rem]" />
-              )}
-            </button>
+          <span className="text-white/50 text-sm font-bold">GIF</span>
+        )}
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className={`p-2 rounded-md transition-colors ${
-                    isDark
-                      ? "hover:bg-stone-700 text-stone-400"
-                      : "hover:bg-stone-200 text-stone-500"
-                  }`}
-                  title="More actions"
-                >
-                  <MoreHorizontal className="w-[1.125rem] h-[1.125rem]" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem asChild>
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Open tweet
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
-                >
-                  {isDeleting ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-3.5 h-3.5" />
-                  )}
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+        {/* Status indicators */}
+        {isProcessing && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 text-white animate-spin" />
+          </div>
+        )}
+        {hasFailed && (
+          <div className="absolute top-1 right-1 bg-red-500 rounded-full p-1">
+            <AlertCircle className="w-3 h-3 text-white" />
+          </div>
         )}
       </div>
 
-      {/* Hover overlay with actions (desktop only) */}
-      <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-all duration-500 ease-out hidden lg:flex items-center justify-center gap-3">
-        {/* Primary actions */}
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className={clsx(
+          "text-sm font-medium truncate",
+          isDark ? "text-stone-200" : "text-stone-700"
+        )}>
+          {hasVideo ? "Saved GIF" : isProcessing ? "Processing..." : hasFailed ? "Failed to save" : "Pending"}
+        </p>
+        <p className={clsx(
+          "text-xs truncate",
+          isDark ? "text-stone-500" : "text-stone-400"
+        )}>
+          {formatDate(link.created_at)}
+        </p>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1 flex-shrink-0">
         {hasVideo && (
           <>
-            {/* Copy Image to Clipboard */}
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCopyImageToClipboard();
-              }}
+              onClick={(e) => { e.stopPropagation(); handleCopyImageToClipboard(); }}
               disabled={isCopyingImage}
-              className="p-2.5 bg-white/10 hover:bg-purple-500 rounded-lg text-white transition-colors duration-300 disabled:opacity-50"
-              title={copiedImage ? "Copied!" : isCopyingImage ? "Copying..." : "Copy image (Shift+C)"}
+              className={clsx(
+                "p-2 rounded-lg transition-colors",
+                isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
+              )}
+              title="Copy image"
             >
               {isCopyingImage ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : copiedImage ? (
-                <Check className="w-4 h-4 text-green-400" />
+                <Check className="w-4 h-4 text-green-500" />
               ) : (
                 <Clipboard className="w-4 h-4" />
               )}
             </button>
 
-            {/* Copy URL */}
             <button
-              onClick={handleCopyUrl}
-              className="p-2.5 bg-white/10 hover:bg-amber-500 rounded-lg text-white transition-colors duration-300"
-              title={copied ? "Copied!" : "Copy URL (C)"}
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-green-400" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </button>
-
-            {/* Download */}
-            <button
-              onClick={handleDownload}
+              onClick={(e) => { e.stopPropagation(); triggerDownload(); }}
               disabled={isDownloading}
-              className="p-2.5 bg-white/10 hover:bg-green-500 rounded-lg text-white transition-colors duration-300 disabled:opacity-50"
-              title={isDownloading ? "Downloading..." : "Download (D)"}
+              className={clsx(
+                "p-2 rounded-lg transition-colors",
+                isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
+              )}
+              title="Download"
             >
               {isDownloading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -586,33 +315,33 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
           </>
         )}
 
-        {/* Copy URL when no video */}
-        {!hasVideo && (
-          <button
-            onClick={handleCopyUrl}
-            className="p-2.5 bg-white/10 hover:bg-amber-500 rounded-lg text-white transition-colors duration-300"
-            title={copied ? "Copied!" : "Copy tweet URL (C)"}
-          >
-            {copied ? (
-              <Check className="w-4 h-4 text-green-400" />
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
-          </button>
-        )}
+        <button
+          onClick={handleCopyUrl}
+          className={clsx(
+            "p-2 rounded-lg transition-colors",
+            isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
+          )}
+          title="Copy URL"
+        >
+          {copied ? (
+            <Check className="w-4 h-4 text-green-500" />
+          ) : (
+            <Copy className="w-4 h-4" />
+          )}
+        </button>
 
-        {/* More actions dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="p-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors duration-300"
-              title="More actions"
+              className={clsx(
+                "p-2 rounded-lg transition-colors",
+                isDark ? "hover:bg-stone-700 text-stone-400" : "hover:bg-stone-100 text-stone-500"
+              )}
             >
               <MoreHorizontal className="w-4 h-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="w-40">
-            {/* Open tweet */}
+          <DropdownMenuContent align="end" className="w-40">
             <DropdownMenuItem asChild>
               <a
                 href={link.url}
@@ -625,10 +354,9 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               </a>
             </DropdownMenuItem>
 
-            {/* Retry for failed */}
             {hasFailed && (
               <DropdownMenuItem
-                onClick={handleRetry}
+                onClick={() => handleRetry()}
                 disabled={retryVideo.isPending}
                 className="flex items-center gap-2 cursor-pointer"
               >
@@ -641,7 +369,6 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               </DropdownMenuItem>
             )}
 
-            {/* Move to folder submenu */}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="flex items-center gap-2 cursor-pointer">
                 <FolderInput className="w-3.5 h-3.5" />
@@ -650,10 +377,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               <DropdownMenuSubContent>
                 <DropdownMenuItem
                   onClick={() => onMove(link.id, null)}
-                  className={clsx(
-                    "cursor-pointer",
-                    !link.folder_id && "text-amber-600",
-                  )}
+                  className={clsx("cursor-pointer", !link.folder_id && "text-amber-600")}
                 >
                   No folder
                 </DropdownMenuItem>
@@ -661,10 +385,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
                   <DropdownMenuItem
                     key={folder.id}
                     onClick={() => onMove(link.id, folder.id)}
-                    className={clsx(
-                      "cursor-pointer",
-                      link.folder_id === folder.id && "text-amber-600",
-                    )}
+                    className={clsx("cursor-pointer", link.folder_id === folder.id && "text-amber-600")}
                   >
                     {folder.name}
                   </DropdownMenuItem>
@@ -674,7 +395,6 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
 
             <DropdownMenuSeparator />
 
-            {/* Delete */}
             <DropdownMenuItem
               onClick={handleDelete}
               disabled={isDeleting}
@@ -685,7 +405,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               ) : (
                 <Trash2 className="w-3.5 h-3.5" />
               )}
-              {isDeleting ? "Deleting..." : "Delete"}
+              Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

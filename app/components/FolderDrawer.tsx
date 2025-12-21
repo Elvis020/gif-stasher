@@ -1,9 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Folder, Link } from "@/types";
-import { LinkCard } from "./LinkCard";
+import { LinkGrid } from "./LinkGrid";
 import { clsx } from "clsx";
 import { useTheme } from "@/app/hooks/useTheme";
 
@@ -153,7 +153,7 @@ export function FolderDrawer({
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                 >
                   <div
-                    className={`border border-t-0 rounded-b-2xl p-4 sm:p-6 ${
+                    className={`border border-t-0 rounded-b-2xl p-4 sm:p-6 max-h-[70vh] overflow-y-auto ${
                       isDark
                         ? "bg-stone-800 border-stone-700"
                         : "bg-white border-stone-200"
@@ -188,52 +188,13 @@ export function FolderDrawer({
                       </div>
                     )}
 
-                    {/* GIF Grid */}
-                    {folderLinks.length === 0 ? (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`py-12 text-center ${
-                          isDark ? "text-stone-500" : "text-stone-400"
-                        }`}
-                      >
-                        <p className="text-lg">Empty</p>
-                        <p className="text-sm mt-1">Add some GIFs to this folder</p>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5"
-                        layout
-                      >
-                        <AnimatePresence mode="popLayout">
-                          {folderLinks.map((link) => (
-                            <motion.div
-                              key={link.id}
-                              layout
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{
-                                opacity: 0,
-                                scale: 0.8,
-                                transition: { duration: 0.2 }
-                              }}
-                              transition={{
-                                layout: { type: "spring", stiffness: 300, damping: 30 },
-                                opacity: { duration: 0.2 },
-                                scale: { duration: 0.2 }
-                              }}
-                            >
-                              <LinkCard
-                                link={link}
-                                folders={folders}
-                                onDelete={onDeleteLink}
-                                onMove={onMoveLink}
-                              />
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </motion.div>
-                    )}
+                    {/* GIF List */}
+                    <LinkGrid
+                      links={folderLinks}
+                      folders={folders}
+                      onDelete={onDeleteLink}
+                      onMove={onMoveLink}
+                    />
                   </div>
                 </motion.div>
               )}
