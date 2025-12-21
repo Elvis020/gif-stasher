@@ -182,12 +182,6 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isHovering, handleCopyImageToClipboard, triggerCopyUrl, triggerDownload]);
 
-  // Extract tweet ID from URL for display
-  const getTweetId = (url: string) => {
-    const match = url.match(/status\/(\d+)/);
-    return match ? match[1].slice(-8) : "tweet";
-  };
-
   // Generate a placeholder gradient based on URL
   const getGradient = (url: string) => {
     const hash = url.split("").reduce((a, b) => a + b.charCodeAt(0), 0);
@@ -309,103 +303,85 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
         )}
       </div>
 
-      {/* Card content */}
-      <div className="p-2 flex items-center justify-between">
-        <p className="text-[10px] sm:text-xs text-stone-500 truncate font-mono">
-          ...{getTweetId(link.url)}
-        </p>
-        {link.video_size && (
-          <span className="text-[10px] text-stone-400">
-            {(link.video_size / 1024 / 1024).toFixed(1)}MB
-          </span>
-        )}
-      </div>
+      {/* Card footer - Quick actions left, dropdown right */}
+      <div className="p-1.5 sm:p-2 flex items-center justify-between border-t border-stone-200">
+        {/* Quick actions */}
+        <div className="flex items-center gap-1">
+          {hasVideo ? (
+            <>
+              {/* Copy Image */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCopyImageToClipboard();
+                }}
+                disabled={isCopyingImage}
+                className="p-1.5 hover:bg-stone-200 rounded-md text-stone-600 transition-colors disabled:opacity-50"
+                title={copiedImage ? "Copied!" : "Copy image"}
+              >
+                {isCopyingImage ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : copiedImage ? (
+                  <Check size={16} className="text-green-500" />
+                ) : (
+                  <Clipboard size={16} />
+                )}
+              </button>
 
-      {/* Hover actions - simplified with dropdown for secondary actions */}
-      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
-        {/* Primary actions */}
-        {hasVideo && (
-          <>
-            {/* Copy Image to Clipboard */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCopyImageToClipboard();
-              }}
-              disabled={isCopyingImage}
-              className="p-2 bg-white/10 hover:bg-purple-500/50 rounded-lg text-white transition-colors disabled:opacity-50"
-              title={
-                copiedImage
-                  ? "Copied!"
-                  : isCopyingImage
-                    ? "Copying..."
-                    : "Copy image (Shift+C)"
-              }
-            >
-              {isCopyingImage ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : copiedImage ? (
-                <Check size={18} className="text-green-400" />
-              ) : (
-                <Clipboard size={18} />
-              )}
-            </button>
+              {/* Copy URL */}
+              <button
+                onClick={handleCopyUrl}
+                className="p-1.5 hover:bg-stone-200 rounded-md text-stone-600 transition-colors"
+                title={copied ? "Copied!" : "Copy URL"}
+              >
+                {copied ? (
+                  <Check size={16} className="text-green-500" />
+                ) : (
+                  <Copy size={16} />
+                )}
+              </button>
 
-            {/* Copy URL */}
+              {/* Download */}
+              <button
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="p-1.5 hover:bg-stone-200 rounded-md text-stone-600 transition-colors disabled:opacity-50"
+                title={isDownloading ? "Downloading..." : "Download"}
+              >
+                {isDownloading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Download size={16} />
+                )}
+              </button>
+            </>
+          ) : (
+            /* Copy URL when no video */
             <button
               onClick={handleCopyUrl}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
-              title={copied ? "Copied!" : "Copy URL (C)"}
+              className="p-1.5 hover:bg-stone-200 rounded-md text-stone-600 transition-colors"
+              title={copied ? "Copied!" : "Copy tweet URL"}
             >
               {copied ? (
-                <Check size={18} className="text-green-400" />
+                <Check size={16} className="text-green-500" />
               ) : (
-                <Copy size={18} />
+                <Copy size={16} />
               )}
             </button>
-
-            {/* Download */}
-            <button
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className="p-2 bg-white/10 hover:bg-green-500/50 rounded-lg text-white transition-colors disabled:opacity-50"
-              title={isDownloading ? "Downloading..." : "Download (D)"}
-            >
-              {isDownloading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Download size={18} />
-              )}
-            </button>
-          </>
-        )}
-
-        {/* Copy URL when no video */}
-        {!hasVideo && (
-          <button
-            onClick={handleCopyUrl}
-            className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
-            title={copied ? "Copied!" : "Copy tweet URL (C)"}
-          >
-            {copied ? (
-              <Check size={18} className="text-green-400" />
-            ) : (
-              <Copy size={18} />
-            )}
-          </button>
-        )}
+          )}
+        </div>
 
         {/* More actions dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
+              className="p-1.5 hover:bg-stone-200 rounded-md text-stone-500 transition-colors"
               title="More actions"
             >
-              <MoreHorizontal size={18} />
+              <MoreHorizontal size={16} />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="w-40">
+          <DropdownMenuContent align="end" className="w-40">
             {/* Open tweet */}
             <DropdownMenuItem asChild>
               <a
@@ -484,6 +460,13 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Hover overlay for desktop - video preview only */}
+      {hasVideo && (
+        <div className="absolute inset-0 bottom-auto aspect-video bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none hidden sm:flex items-center justify-center">
+          <span className="text-white/80 text-xs font-medium">Hover to preview</span>
+        </div>
+      )}
     </div>
   );
 }
