@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, X } from "lucide-react";
 import { Folder, Link } from "@/types";
 import { Button, Input } from "./custom-ui";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ interface AddLinkFormProps {
   ) => Promise<Link>;
   onNewFolder: () => void;
   isLoading: boolean;
+  onSaveSuccess?: () => void;
 }
 
 export function AddLinkForm({
@@ -26,6 +27,7 @@ export function AddLinkForm({
   onSubmit,
   onNewFolder,
   isLoading,
+  onSaveSuccess,
 }: AddLinkFormProps) {
   const { isDark } = useTheme();
   const [url, setUrl] = useState("");
@@ -74,6 +76,7 @@ export function AddLinkForm({
         // Success - reset form
         setUrl("");
         setProcessingVideo(false);
+        onSaveSuccess?.();
       } catch (videoErr) {
         // Video extraction failed - delete the link and show error
         const errorMessage =
@@ -98,6 +101,20 @@ export function AddLinkForm({
     }
   };
 
+  const handleInputClick = async () => {
+    // Auto-paste from clipboard if input is empty
+    if (url.trim() || isProcessing) return;
+
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      if (clipboardText.includes("twitter.com") || clipboardText.includes("x.com")) {
+        setUrl(clipboardText.trim());
+      }
+    } catch {
+      // Clipboard access denied or not available - ignore silently
+    }
+  };
+
   const isValidUrl =
     url.trim().length > 0 &&
     (url.includes("twitter.com") || url.includes("x.com"));
@@ -108,7 +125,7 @@ export function AddLinkForm({
     <form onSubmit={handleSubmit} className="mb-8">
       <div className="flex flex-col gap-3">
         <div className="flex gap-3">
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <Input
               type="url"
               placeholder="Paste Twitter/X URL here..."
@@ -117,8 +134,26 @@ export function AddLinkForm({
                 setUrl(e.target.value);
                 setError(null);
               }}
+              onClick={handleInputClick}
               disabled={isProcessing}
+              className={url ? "pr-10" : ""}
             />
+            {url && !isProcessing && (
+              <button
+                type="button"
+                onClick={() => {
+                  setUrl("");
+                  setError(null);
+                }}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full transition-colors ${
+                  isDark
+                    ? "text-stone-400 hover:text-stone-200 hover:bg-stone-700"
+                    : "text-stone-400 hover:text-stone-600 hover:bg-stone-200"
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           <div className="flex gap-2">

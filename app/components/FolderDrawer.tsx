@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import { Folder, Link } from "@/types";
@@ -17,6 +16,8 @@ interface FolderDrawerProps {
   onEditFolder: (folder: Folder) => void;
   onDeleteFolder: (folderId: string) => void;
   linkCounts: Record<string, number>;
+  openFolderId: string | null;
+  onOpenFolderChange: (folderId: string | null) => void;
 }
 
 export function FolderDrawer({
@@ -28,12 +29,13 @@ export function FolderDrawer({
   onEditFolder,
   onDeleteFolder,
   linkCounts,
+  openFolderId,
+  onOpenFolderChange,
 }: FolderDrawerProps) {
   const { isDark } = useTheme();
-  const [openFolderId, setOpenFolderId] = useState<string | null>(null);
 
   const toggleFolder = (folderId: string) => {
-    setOpenFolderId(openFolderId === folderId ? null : folderId);
+    onOpenFolderChange(openFolderId === folderId ? null : folderId);
   };
 
   const getLinksForFolder = (folderId: string) => {
@@ -173,7 +175,7 @@ export function FolderDrawer({
                         <button
                           onClick={() => {
                             onDeleteFolder(item.id);
-                            setOpenFolderId(null);
+                            onOpenFolderChange(null);
                           }}
                           className={`text-xs transition-colors ${
                             isDark

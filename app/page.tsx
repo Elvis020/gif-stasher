@@ -40,6 +40,9 @@ export default function HomePage() {
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
 
+  // Folder drawer state
+  const [openFolderId, setOpenFolderId] = useState<string | null>(null);
+
   // Computed
   const linkCounts = links.reduce(
     (acc, link) => {
@@ -129,6 +132,11 @@ export default function HomePage() {
           onSubmit={handleAddLink}
           onNewFolder={openNewFolderModal}
           isLoading={createLink.isPending}
+          onSaveSuccess={() => {
+            if (!openFolderId) {
+              setOpenFolderId("all");
+            }
+          }}
         />
 
         <FolderDrawer
@@ -140,6 +148,8 @@ export default function HomePage() {
           onEditFolder={handleEditFolder}
           onDeleteFolder={handleDeleteFolder}
           linkCounts={linkCounts}
+          openFolderId={openFolderId}
+          onOpenFolderChange={setOpenFolderId}
         />
 
         <FolderModal

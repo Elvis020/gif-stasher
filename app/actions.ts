@@ -136,11 +136,11 @@ export async function extractVideoFromTweet(tweetUrl: string): Promise<VideoExtr
         if (data.mediaDetails) {
             for (const media of data.mediaDetails) {
                 if (media.type === "video" || media.type === "animated_gif") {
-                    // Check duration - reject videos longer than 5 seconds
+                    // Check duration - reject videos longer than 10 seconds
                     const durationMs = media.video_info?.duration_millis || 0;
-                    const MAX_DURATION_MS = 5000; // 5 seconds
+                    const MAX_DURATION_MS = 10000; // 10 seconds
                     if (durationMs > MAX_DURATION_MS) {
-                        console.log(`Video too long (${(durationMs / 1000).toFixed(1)}s). Maximum is 5 seconds.`);
+                        console.log(`Video too long (${(durationMs / 1000).toFixed(1)}s). Maximum is 10 seconds.`);
                         return {
                             success: false,
                             error: "Only short GIFs allowed",
@@ -266,10 +266,10 @@ export async function downloadAndUploadVideo(
             const gifBuffer = await readFile(tempGifPath);
             const gifSize = gifBuffer.length;
 
-            // Check output GIF size limit (6MB max to save storage)
-            const MAX_GIF_SIZE = 6 * 1024 * 1024; // 6MB
+            // Check output GIF size limit (8MB max to save storage)
+            const MAX_GIF_SIZE = 8 * 1024 * 1024; // 8MB
             if (gifSize > MAX_GIF_SIZE) {
-                throw new Error(`GIF too large (${(gifSize / 1024 / 1024).toFixed(1)}MB). Maximum is 6MB.`);
+                throw new Error(`GIF too large (${(gifSize / 1024 / 1024).toFixed(1)}MB). Maximum is 8MB.`);
             }
 
             // Upload to Supabase Storage

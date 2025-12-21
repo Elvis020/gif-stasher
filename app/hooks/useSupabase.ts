@@ -192,7 +192,11 @@ export function useProcessVideo() {
             }
 
             // Pass thumbnail from extraction to save it
-            return downloadAndUploadVideo(extraction.videoUrl, linkId, extraction.thumbnail);
+            const result = await downloadAndUploadVideo(extraction.videoUrl, linkId, extraction.thumbnail);
+            if (!result.success) {
+                throw new Error(result.error || "Failed to process video");
+            }
+            return result;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["links"] });
@@ -215,7 +219,11 @@ export function useRetryVideo() {
 
             // Use original video URL if available, otherwise use extracted
             const videoUrl = link.original_video_url || extraction.videoUrl!;
-            return downloadAndUploadVideo(videoUrl, link.id, extraction.thumbnail);
+            const result = await downloadAndUploadVideo(videoUrl, link.id, extraction.thumbnail);
+            if (!result.success) {
+                throw new Error(result.error || "Failed to process video");
+            }
+            return result;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["links"] });
