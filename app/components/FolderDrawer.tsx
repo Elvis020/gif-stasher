@@ -6,6 +6,7 @@ import { Plus, X } from "lucide-react";
 import { Folder, Link } from "@/types";
 import { LinkCard } from "./LinkCard";
 import { clsx } from "clsx";
+import { useTheme } from "@/app/hooks/useTheme";
 
 interface FolderDrawerProps {
   folders: Folder[];
@@ -28,6 +29,7 @@ export function FolderDrawer({
   onDeleteFolder,
   linkCounts,
 }: FolderDrawerProps) {
+  const { isDark } = useTheme();
   const [openFolderId, setOpenFolderId] = useState<string | null>(null);
 
   const toggleFolder = (folderId: string) => {
@@ -69,10 +71,14 @@ export function FolderDrawer({
                 }
               }}
               className={clsx(
-                "w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-all duration-200",
+                "w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-all duration-200 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:border-transparent",
                 isOpen
-                  ? "bg-amber-500 text-white rounded-b-none"
-                  : "bg-white text-stone-700 hover:bg-stone-50 border border-stone-200"
+                  ? isDark
+                    ? "bg-amber-600 text-white rounded-b-none"
+                    : "bg-amber-500 text-white rounded-b-none"
+                  : isDark
+                    ? "bg-stone-800 text-stone-200 hover:bg-stone-700 border border-stone-700"
+                    : "bg-white text-stone-700 hover:bg-stone-50 border border-stone-200"
               )}
               whileTap={{ scale: 0.995 }}
             >
@@ -81,7 +87,11 @@ export function FolderDrawer({
                 <motion.div
                   className={clsx(
                     "w-10 h-8 rounded-t-lg rounded-b-md relative",
-                    isOpen ? "bg-amber-400" : "bg-amber-100"
+                    isOpen
+                      ? "bg-amber-400"
+                      : isDark
+                        ? "bg-amber-900/50"
+                        : "bg-amber-100"
                   )}
                   animate={{ rotateX: isOpen ? 45 : 0 }}
                   style={{ transformOrigin: "bottom" }}
@@ -90,7 +100,11 @@ export function FolderDrawer({
                   <div
                     className={clsx(
                       "absolute -top-1.5 left-0 w-4 h-2 rounded-t-md",
-                      isOpen ? "bg-amber-400" : "bg-amber-200"
+                      isOpen
+                        ? "bg-amber-400"
+                        : isDark
+                          ? "bg-amber-800/50"
+                          : "bg-amber-200"
                     )}
                   />
                 </motion.div>
@@ -101,7 +115,11 @@ export function FolderDrawer({
                 <span
                   className={clsx(
                     "text-sm font-medium px-2.5 py-1 rounded-full",
-                    isOpen ? "bg-white/20" : "bg-stone-100 text-stone-500"
+                    isOpen
+                      ? "bg-white/20"
+                      : isDark
+                        ? "bg-stone-700 text-stone-400"
+                        : "bg-stone-100 text-stone-500"
                   )}
                 >
                   {item.count}
@@ -111,8 +129,13 @@ export function FolderDrawer({
                   transition={{ duration: 0.2 }}
                 >
                   <Plus
-                    size={20}
-                    className={isOpen ? "text-white" : "text-stone-400"}
+                    className={`w-5 h-5 ${
+                      isOpen
+                        ? "text-white"
+                        : isDark
+                          ? "text-stone-500"
+                          : "text-stone-400"
+                    }`}
                   />
                 </motion.div>
               </div>
@@ -127,13 +150,23 @@ export function FolderDrawer({
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                 >
-                  <div className="bg-white border border-t-0 border-stone-200 rounded-b-2xl p-4 sm:p-6">
+                  <div
+                    className={`border border-t-0 rounded-b-2xl p-4 sm:p-6 ${
+                      isDark
+                        ? "bg-stone-800 border-stone-700"
+                        : "bg-white border-stone-200"
+                    }`}
+                  >
                     {/* Header with actions */}
                     {isCustomFolder && (
                       <div className="flex justify-end gap-2 mb-4">
                         <button
                           onClick={() => onEditFolder(item.folder!)}
-                          className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                          className={`text-xs transition-colors ${
+                            isDark
+                              ? "text-stone-500 hover:text-stone-300"
+                              : "text-stone-400 hover:text-stone-600"
+                          }`}
                         >
                           Rename
                         </button>
@@ -142,7 +175,11 @@ export function FolderDrawer({
                             onDeleteFolder(item.id);
                             setOpenFolderId(null);
                           }}
-                          className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                          className={`text-xs transition-colors ${
+                            isDark
+                              ? "text-red-400 hover:text-red-400"
+                              : "text-red-400 hover:text-red-600"
+                          }`}
                         >
                           Delete folder
                         </button>
@@ -154,7 +191,9 @@ export function FolderDrawer({
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="py-12 text-center text-stone-400"
+                        className={`py-12 text-center ${
+                          isDark ? "text-stone-500" : "text-stone-400"
+                        }`}
                       >
                         <p className="text-lg">Empty</p>
                         <p className="text-sm mt-1">Add some GIFs to this folder</p>
@@ -204,11 +243,15 @@ export function FolderDrawer({
       {/* Add Folder Button */}
       <motion.button
         onClick={onNewFolder}
-        className="w-full flex items-center justify-center gap-2 px-5 py-4 rounded-2xl border-2 border-dashed border-stone-300 text-stone-400 hover:border-amber-400 hover:text-amber-500 transition-all duration-200"
+        className={`w-full flex items-center justify-center gap-2 px-5 py-4 rounded-2xl border-2 border-dashed transition-all duration-200 ${
+          isDark
+            ? "border-stone-600 text-stone-500 hover:border-amber-500 hover:text-amber-400"
+            : "border-stone-300 text-stone-400 hover:border-amber-400 hover:text-amber-500"
+        }`}
         whileHover={{ scale: 1.005 }}
         whileTap={{ scale: 0.995 }}
       >
-        <Plus size={20} />
+        <Plus className="w-5 h-5" />
         <span className="font-medium">New Folder</span>
       </motion.button>
     </div>

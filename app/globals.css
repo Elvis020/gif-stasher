@@ -1,24 +1,140 @@
 @import "tailwindcss";
 
 :root {
-    --background: #ffffff;
-    --foreground: #171717;
+    --background: #fffbeb; /* amber-50 */
+    --foreground: #1c1917; /* stone-900 */
 }
 
-@theme inline {
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
+.dark {
+    --background: #1c1917; /* stone-900 */
+    --foreground: #fafaf9; /* stone-50 */
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --background: #0a0a0a;
-        --foreground: #ededed;
+/* Global font size reduction: 20% on mobile, 10% on desktop */
+html {
+    font-size: 80%; /* 20% reduction on mobile */
+}
+
+@media (min-width: 1024px) {
+    html {
+        font-size: 90%; /* 10% reduction on desktop */
     }
 }
 
 body {
     background: var(--background);
     color: var(--foreground);
-    font-family: Arial, Helvetica, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* View Transition animations for theme switching - Circular Reveal */
+:root {
+    --theme-toggle-x: 50%;
+    --theme-toggle-y: 0;
+    --theme-toggle-radius: 100vmax;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+    z-index: 1;
+    animation: none;
+}
+
+::view-transition-new(root) {
+    z-index: 9999;
+    animation: circular-reveal 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes circular-reveal {
+    from {
+        clip-path: circle(0px at var(--theme-toggle-x) var(--theme-toggle-y));
+    }
+    to {
+        clip-path: circle(var(--theme-toggle-radius) at var(--theme-toggle-x) var(--theme-toggle-y));
+    }
+}
+
+/* Dark mode gets reverse animation direction */
+.dark::view-transition-old(root) {
+    z-index: 9999;
+    animation: circular-reveal-out 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.dark::view-transition-new(root) {
+    z-index: 1;
+    animation: none;
+}
+
+@keyframes circular-reveal-out {
+    from {
+        clip-path: circle(var(--theme-toggle-radius) at var(--theme-toggle-x) var(--theme-toggle-y));
+    }
+    to {
+        clip-path: circle(0px at var(--theme-toggle-x) var(--theme-toggle-y));
+    }
+}
+
+/* Additional sparkle effect during transition */
+.theme-transitioning::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 99999;
+    background: radial-gradient(
+        circle at var(--theme-toggle-x) var(--theme-toggle-y),
+        rgba(251, 191, 36, 0.3) 0%,
+        transparent 50%
+    );
+    animation: sparkle-pulse 0.8s ease-out forwards;
+}
+
+@keyframes sparkle-pulse {
+    0% {
+        opacity: 1;
+        transform: scale(0.5);
+    }
+    50% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2);
+    }
+}
+
+/* Background shape animations */
+@keyframes float {
+    0%, 100% { transform: translateY(0) translateX(0); }
+    25% { transform: translateY(-10px) translateX(5px); }
+    50% { transform: translateY(-5px) translateX(-5px); }
+    75% { transform: translateY(-15px) translateX(3px); }
+}
+
+.animate-float {
+    animation: float 8s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.3; }
+}
+
+/* Remove focus outlines on interactive elements */
+button:focus,
+button:focus-visible {
+    outline: none;
+    box-shadow: none;
 }

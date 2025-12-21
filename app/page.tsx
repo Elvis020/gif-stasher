@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Folder } from "@/types";
 import {
   AddLinkForm,
+  BackgroundShapes,
   FolderDrawer,
   FolderModal,
   Header,
@@ -18,8 +19,11 @@ import {
   useUpdateFolder,
   useDeleteFolder,
 } from "./hooks/useSupabase";
+import { useTheme } from "./hooks/useTheme";
 
 export default function HomePage() {
+  const { isDark } = useTheme();
+
   // Queries
   const { data: folders = [], isLoading: foldersLoading } = useFolders();
   const { data: links = [], isLoading: linksLoading } = useLinks();
@@ -99,15 +103,25 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-amber-50 flex items-center justify-center text-stone-500">
-        Loading your stash...
+      <main
+        className={`min-h-screen flex items-center justify-center transition-colors duration-300 relative ${
+          isDark ? "bg-stone-900 text-stone-400" : "bg-amber-50 text-stone-500"
+        }`}
+      >
+        <BackgroundShapes />
+        <span className="relative z-10">Loading your stash...</span>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-amber-50 transition-colors duration-300">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <main
+      className={`min-h-screen transition-colors duration-300 relative ${
+        isDark ? "bg-stone-900" : "bg-amber-50"
+      }`}
+    >
+      <BackgroundShapes />
+      <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
         <Header />
 
         <AddLinkForm

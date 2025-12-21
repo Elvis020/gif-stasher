@@ -7,6 +7,7 @@ import { Button, Input, Select } from "./custom-ui";
 
 import { validateTwitterGif } from "@/app/actions";
 import { useProcessVideo } from "@/app/hooks/useSupabase";
+import { useTheme } from "@/app/hooks/useTheme";
 
 interface AddLinkFormProps {
   folders: Folder[];
@@ -25,6 +26,7 @@ export function AddLinkForm({
   onNewFolder,
   isLoading,
 }: AddLinkFormProps) {
+  const { isDark } = useTheme();
   const [url, setUrl] = useState("");
   const [folderId, setFolderId] = useState<string>("");
   const [validating, setValidating] = useState(false);
@@ -168,12 +170,12 @@ export function AddLinkForm({
                 <span className="animate-pulse">Checking...</span>
               ) : processingVideo ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" />
+                  <Loader2 className="w-[1.125rem] h-[1.125rem] animate-spin" />
                   <span className="hidden sm:inline">Saving...</span>
                 </>
               ) : (
                 <>
-                  <Send size={18} />
+                  <Send className="w-[1.125rem] h-[1.125rem]" />
                   <span className="hidden sm:inline">Save</span>
                 </>
               )}
@@ -183,11 +185,25 @@ export function AddLinkForm({
 
         {/* Manual Video URL Input Fallback */}
         {showManualVideoInput && (
-          <div className="animate-in fade-in slide-in-from-top-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-800 mb-2">
+          <div
+            className={`animate-in fade-in slide-in-from-top-2 border rounded-lg p-3 ${
+              isDark
+                ? "bg-blue-950/50 border-blue-800"
+                : "bg-blue-50 border-blue-200"
+            }`}
+          >
+            <p
+              className={`text-sm mb-2 ${
+                isDark ? "text-blue-200" : "text-blue-800"
+              }`}
+            >
               Couldn&apos;t auto-extract the video. To save the actual GIF/video:
             </p>
-            <ol className="text-xs text-blue-700 mb-3 list-decimal list-inside space-y-1">
+            <ol
+              className={`text-xs mb-3 list-decimal list-inside space-y-1 ${
+                isDark ? "text-blue-300" : "text-blue-700"
+              }`}
+            >
               <li>Open the tweet in a new tab</li>
               <li>Right-click on the GIF/video</li>
               <li>Select &quot;Copy video address&quot;</li>
@@ -209,7 +225,7 @@ export function AddLinkForm({
                 disabled={!manualVideoUrl.trim() || processingVideo}
               >
                 {processingVideo ? (
-                  <Loader2 size={16} className="animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   "Save"
                 )}
@@ -225,14 +241,24 @@ export function AddLinkForm({
               </Button>
             </div>
             {videoError && (
-              <p className="text-xs text-red-600 mt-2">{videoError}</p>
+              <p
+                className={`text-xs mt-2 ${
+                  isDark ? "text-red-400" : "text-red-600"
+                }`}
+              >
+                {videoError}
+              </p>
             )}
           </div>
         )}
       </div>
 
       {(error || (url && !isValidUrl)) && (
-        <p className="mt-2 text-sm text-orange-600">
+        <p
+          className={`mt-2 text-sm ${
+            isDark ? "text-orange-400" : "text-orange-600"
+          }`}
+        >
           {error || "Please enter a valid Twitter/X URL"}
         </p>
       )}

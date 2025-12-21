@@ -17,6 +17,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { clsx } from "clsx";
 import { Link, Folder } from "@/types";
 import { useRetryVideo } from "@/app/hooks/useSupabase";
+import { useTheme } from "@/app/hooks/useTheme";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +37,7 @@ interface LinkCardProps {
 }
 
 export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
+  const { isDark } = useTheme();
   const [isHovering, setIsHovering] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedImage, setCopiedImage] = useState(false);
@@ -222,11 +224,16 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
   return (
     <div
       className={clsx(
-        "group relative bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm",
+        "group relative rounded-2xl overflow-hidden shadow-sm",
         "transition-all duration-500 ease-out",
+        isDark
+          ? "bg-stone-800 border border-stone-700"
+          : "bg-white border border-stone-200",
         isDeleting
           ? "opacity-50 pointer-events-none scale-95"
-          : "hover:shadow-2xl hover:border-stone-300 hover:-translate-y-1 hover:scale-[1.02]",
+          : isDark
+            ? "hover:shadow-2xl hover:shadow-stone-900/50 hover:border-stone-600 hover:-translate-y-1 hover:scale-[1.02]"
+            : "hover:shadow-2xl hover:border-stone-300 hover:-translate-y-1 hover:scale-[1.02]",
       )}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
@@ -266,7 +273,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
         {isProcessing && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <div className="text-center text-white">
-              <Loader2 className="animate-spin mx-auto mb-1" size={24} />
+              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-1" />
               <span className="text-xs">
                 {link.video_status === "pending"
                   ? "Waiting..."
@@ -280,7 +287,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
         {isDeleting && (
           <div className="absolute inset-0 bg-red-900/70 flex items-center justify-center z-10">
             <div className="text-center text-white">
-              <Loader2 className="animate-spin mx-auto mb-1" size={24} />
+              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-1" />
               <span className="text-xs">Deleting...</span>
             </div>
           </div>
@@ -292,20 +299,24 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
             className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
             title={link.video_error || "Failed"}
           >
-            <AlertCircle size={14} />
+            <AlertCircle className="w-3.5 h-3.5" />
           </div>
         )}
 
         {/* Video ready indicator - shows briefly then fades */}
         {showReadyIndicator && !isHovering && (
           <div className="absolute top-2 left-2 bg-green-500 text-white rounded-full p-1">
-            <Check size={14} />
+            <Check className="w-3.5 h-3.5" />
           </div>
         )}
       </div>
 
       {/* Card footer - Actions evenly distributed (mobile/tablet only) */}
-      <div className="p-2 flex lg:hidden items-center justify-evenly border-t border-stone-200">
+      <div
+        className={`p-2 flex lg:hidden items-center justify-evenly border-t ${
+          isDark ? "border-stone-700" : "border-stone-200"
+        }`}
+      >
         {hasVideo ? (
           <>
             {/* Copy Image */}
@@ -315,28 +326,36 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
                 handleCopyImageToClipboard();
               }}
               disabled={isCopyingImage}
-              className="p-2 hover:bg-stone-200 rounded-md text-stone-600 transition-colors disabled:opacity-50"
+              className={`p-2 rounded-md transition-colors disabled:opacity-50 ${
+                isDark
+                  ? "hover:bg-stone-700 text-stone-400"
+                  : "hover:bg-stone-200 text-stone-600"
+              }`}
               title={copiedImage ? "Copied!" : "Copy image"}
             >
               {isCopyingImage ? (
-                <Loader2 size={18} className="animate-spin" />
+                <Loader2 className="w-[1.125rem] h-[1.125rem] animate-spin" />
               ) : copiedImage ? (
-                <Check size={18} className="text-green-500" />
+                <Check className="w-[1.125rem] h-[1.125rem] text-green-500" />
               ) : (
-                <Clipboard size={18} />
+                <Clipboard className="w-[1.125rem] h-[1.125rem]" />
               )}
             </button>
 
             {/* Copy URL */}
             <button
               onClick={handleCopyUrl}
-              className="p-2 hover:bg-stone-200 rounded-md text-stone-600 transition-colors"
+              className={`p-2 rounded-md transition-colors ${
+                isDark
+                  ? "hover:bg-stone-700 text-stone-400"
+                  : "hover:bg-stone-200 text-stone-600"
+              }`}
               title={copied ? "Copied!" : "Copy URL"}
             >
               {copied ? (
-                <Check size={18} className="text-green-500" />
+                <Check className="w-[1.125rem] h-[1.125rem] text-green-500" />
               ) : (
-                <Copy size={18} />
+                <Copy className="w-[1.125rem] h-[1.125rem]" />
               )}
             </button>
 
@@ -344,13 +363,17 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
             <button
               onClick={handleDownload}
               disabled={isDownloading}
-              className="p-2 hover:bg-stone-200 rounded-md text-stone-600 transition-colors disabled:opacity-50"
+              className={`p-2 rounded-md transition-colors disabled:opacity-50 ${
+                isDark
+                  ? "hover:bg-stone-700 text-stone-400"
+                  : "hover:bg-stone-200 text-stone-600"
+              }`}
               title={isDownloading ? "Downloading..." : "Download"}
             >
               {isDownloading ? (
-                <Loader2 size={18} className="animate-spin" />
+                <Loader2 className="w-[1.125rem] h-[1.125rem] animate-spin" />
               ) : (
-                <Download size={18} />
+                <Download className="w-[1.125rem] h-[1.125rem]" />
               )}
             </button>
 
@@ -358,10 +381,14 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="p-2 hover:bg-stone-200 rounded-md text-stone-500 transition-colors"
+                  className={`p-2 rounded-md transition-colors ${
+                    isDark
+                      ? "hover:bg-stone-700 text-stone-400"
+                      : "hover:bg-stone-200 text-stone-500"
+                  }`}
                   title="More actions"
                 >
-                  <MoreHorizontal size={18} />
+                  <MoreHorizontal className="w-[1.125rem] h-[1.125rem]" />
                 </button>
               </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
@@ -373,7 +400,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 cursor-pointer"
               >
-                <ExternalLink size={14} />
+                <ExternalLink className="w-3.5 h-3.5" />
                 Open tweet
               </a>
             </DropdownMenuItem>
@@ -386,9 +413,9 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
                 className="flex items-center gap-2 cursor-pointer"
               >
                 {retryVideo.isPending ? (
-                  <Loader2 size={14} className="animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <RefreshCw size={14} />
+                  <RefreshCw className="w-3.5 h-3.5" />
                 )}
                 Retry download
               </DropdownMenuItem>
@@ -397,8 +424,8 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
             {/* Move to folder submenu */}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="flex items-center gap-2 cursor-pointer">
-                <FolderInput size={14} />
-                Move to folder
+                <FolderInput className="w-3.5 h-3.5" />
+                Move
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 <DropdownMenuItem
@@ -434,9 +461,9 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
             >
               {isDeleting ? (
-                <Loader2 size={14} className="animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Trash2 size={14} />
+                <Trash2 className="w-3.5 h-3.5" />
               )}
               {isDeleting ? "Deleting..." : "Delete"}
             </DropdownMenuItem>
@@ -448,23 +475,31 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
           <>
             <button
               onClick={handleCopyUrl}
-              className="p-2 hover:bg-stone-200 rounded-md text-stone-600 transition-colors"
+              className={`p-2 rounded-md transition-colors ${
+                isDark
+                  ? "hover:bg-stone-700 text-stone-400"
+                  : "hover:bg-stone-200 text-stone-600"
+              }`}
               title={copied ? "Copied!" : "Copy tweet URL"}
             >
               {copied ? (
-                <Check size={18} className="text-green-500" />
+                <Check className="w-[1.125rem] h-[1.125rem] text-green-500" />
               ) : (
-                <Copy size={18} />
+                <Copy className="w-[1.125rem] h-[1.125rem]" />
               )}
             </button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="p-2 hover:bg-stone-200 rounded-md text-stone-500 transition-colors"
+                  className={`p-2 rounded-md transition-colors ${
+                    isDark
+                      ? "hover:bg-stone-700 text-stone-400"
+                      : "hover:bg-stone-200 text-stone-500"
+                  }`}
                   title="More actions"
                 >
-                  <MoreHorizontal size={18} />
+                  <MoreHorizontal className="w-[1.125rem] h-[1.125rem]" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
@@ -475,7 +510,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 cursor-pointer"
                   >
-                    <ExternalLink size={14} />
+                    <ExternalLink className="w-3.5 h-3.5" />
                     Open tweet
                   </a>
                 </DropdownMenuItem>
@@ -486,9 +521,9 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
                   className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
                 >
                   {isDeleting ? (
-                    <Loader2 size={14} className="animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <Trash2 size={14} />
+                    <Trash2 className="w-3.5 h-3.5" />
                   )}
                   {isDeleting ? "Deleting..." : "Delete"}
                 </DropdownMenuItem>
@@ -514,11 +549,11 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               title={copiedImage ? "Copied!" : isCopyingImage ? "Copying..." : "Copy image (Shift+C)"}
             >
               {isCopyingImage ? (
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : copiedImage ? (
-                <Check size={16} className="text-green-400" />
+                <Check className="w-4 h-4 text-green-400" />
               ) : (
-                <Clipboard size={16} />
+                <Clipboard className="w-4 h-4" />
               )}
             </button>
 
@@ -529,9 +564,9 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               title={copied ? "Copied!" : "Copy URL (C)"}
             >
               {copied ? (
-                <Check size={16} className="text-green-400" />
+                <Check className="w-4 h-4 text-green-400" />
               ) : (
-                <Copy size={16} />
+                <Copy className="w-4 h-4" />
               )}
             </button>
 
@@ -543,9 +578,9 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               title={isDownloading ? "Downloading..." : "Download (D)"}
             >
               {isDownloading ? (
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Download size={16} />
+                <Download className="w-4 h-4" />
               )}
             </button>
           </>
@@ -559,9 +594,9 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
             title={copied ? "Copied!" : "Copy tweet URL (C)"}
           >
             {copied ? (
-              <Check size={16} className="text-green-400" />
+              <Check className="w-4 h-4 text-green-400" />
             ) : (
-              <Copy size={16} />
+              <Copy className="w-4 h-4" />
             )}
           </button>
         )}
@@ -573,7 +608,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               className="p-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors duration-300"
               title="More actions"
             >
-              <MoreHorizontal size={16} />
+              <MoreHorizontal className="w-4 h-4" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-40">
@@ -585,7 +620,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 cursor-pointer"
               >
-                <ExternalLink size={14} />
+                <ExternalLink className="w-3.5 h-3.5" />
                 Open tweet
               </a>
             </DropdownMenuItem>
@@ -598,9 +633,9 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
                 className="flex items-center gap-2 cursor-pointer"
               >
                 {retryVideo.isPending ? (
-                  <Loader2 size={14} className="animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <RefreshCw size={14} />
+                  <RefreshCw className="w-3.5 h-3.5" />
                 )}
                 Retry download
               </DropdownMenuItem>
@@ -609,8 +644,8 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
             {/* Move to folder submenu */}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="flex items-center gap-2 cursor-pointer">
-                <FolderInput size={14} />
-                Move to folder
+                <FolderInput className="w-3.5 h-3.5" />
+                Move
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 <DropdownMenuItem
@@ -646,9 +681,9 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
             >
               {isDeleting ? (
-                <Loader2 size={14} className="animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Trash2 size={14} />
+                <Trash2 className="w-3.5 h-3.5" />
               )}
               {isDeleting ? "Deleting..." : "Delete"}
             </DropdownMenuItem>

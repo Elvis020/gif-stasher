@@ -44,7 +44,7 @@ export function FolderTabs({
               : "bg-stone-200  text-stone-600  hover:text-stone-800 hover:bg-stone-300 ",
           )}
         >
-          <FolderIcon size={16} />
+          <FolderIcon className="w-4 h-4" />
           <span>All</span>
           <span
             className={clsx(
@@ -68,7 +68,7 @@ export function FolderTabs({
                   : "bg-stone-200  text-stone-600  hover:text-stone-800 hover:bg-stone-300 ",
               )}
             >
-              <FolderIcon size={16} />
+              <FolderIcon className="w-4 h-4" />
               <span>{folder.name}</span>
               <span
                 className={clsx(
@@ -95,7 +95,7 @@ export function FolderTabs({
                     : "text-stone-400",
                 )}
               >
-                <MoreHorizontal size={14} />
+                <MoreHorizontal className="w-3.5 h-3.5" />
               </span>
             </button>
 
@@ -114,7 +114,7 @@ export function FolderTabs({
                     }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-100  transition-colors"
                   >
-                    <Pencil size={14} />
+                    <Pencil className="w-3.5 h-3.5" />
                     Rename
                   </button>
                   <button
@@ -124,7 +124,7 @@ export function FolderTabs({
                     }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600  hover:bg-stone-100 transition-colors"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 className="w-3.5 h-3.5" />
                     Delete
                   </button>
                 </div>
