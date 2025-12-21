@@ -46,18 +46,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggleTheme = useCallback((event?: React.MouseEvent) => {
     const newTheme = theme === "light" ? "dark" : "light";
 
-    // Get click coordinates for circular reveal
-    const x = event?.clientX ?? window.innerWidth / 2;
-    const y = event?.clientY ?? 0;
+    // Skip fancy animation on mobile for performance
+    const isMobile = window.innerWidth < 768;
 
-    // Calculate the maximum radius needed to cover the entire screen
-    const maxRadius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y)
-    );
+    // Use View Transitions API if available and not on mobile
+    if (document.startViewTransition && !isMobile) {
+      // Get click coordinates for circular reveal
+      const x = event?.clientX ?? window.innerWidth / 2;
+      const y = event?.clientY ?? 0;
 
-    // Use View Transitions API if available for circular reveal
-    if (document.startViewTransition) {
+      // Calculate the maximum radius needed to cover the entire screen
+      const maxRadius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+      );
+
       // Set CSS custom properties for the animation origin
       document.documentElement.style.setProperty("--theme-toggle-x", `${x}px`);
       document.documentElement.style.setProperty("--theme-toggle-y", `${y}px`);
@@ -78,7 +81,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         document.documentElement.classList.remove("theme-transitioning");
       });
     } else {
+      // Simple instant switch on mobile
       setTheme(newTheme);
+      applyTheme(newTheme);
+      localStorage.setItem("gif-stash-theme", newTheme);
     }
   }, [theme]);
 
