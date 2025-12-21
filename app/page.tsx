@@ -107,7 +107,7 @@ export default function HomePage() {
   if (isLoading) {
     return (
       <main
-        className={`min-h-screen flex items-center justify-center transition-colors duration-300 relative ${
+        className={`min-h-screen flex items-center justify-center transition-colors duration-300 relative grainy ${
           isDark ? "bg-stone-900 text-stone-400" : "bg-amber-50 text-stone-500"
         }`}
       >
