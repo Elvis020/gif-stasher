@@ -66,6 +66,9 @@ export function AddLinkForm({
       setValidating(false);
       setProcessingVideo(true);
 
+      // Open folder immediately after link is created
+      onSaveSuccess?.();
+
       // Step 3: Try to extract and upload video
       try {
         await processVideo.mutateAsync({
@@ -76,7 +79,6 @@ export function AddLinkForm({
         // Success - reset form
         setUrl("");
         setProcessingVideo(false);
-        onSaveSuccess?.();
       } catch (videoErr) {
         // Video extraction failed - delete the link and show error
         const errorMessage =
