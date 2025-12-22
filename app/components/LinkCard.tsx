@@ -72,6 +72,25 @@ export function LinkCard({ link, folders, onDelete, onMove, autoPlayOnMobile = f
     try {
       const response = await fetch(link.video_url);
       const blob = await response.blob();
+
+      // On iOS, use Share API to allow saving to Photos
+      if (isMobile && navigator.share && navigator.canShare) {
+        const fileName = link.title
+          ? `${link.title.slice(0, 30).replace(/[^a-z0-9]/gi, '_')}.mp4`
+          : `gif-${link.id.slice(0, 8)}.mp4`;
+
+        const file = new File([blob], fileName, { type: 'video/mp4' });
+
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: link.title || 'Saved GIF',
+          });
+          return;
+        }
+      }
+
+      // Fallback: regular download for desktop/browsers without Share API
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -85,7 +104,7 @@ export function LinkCard({ link, folders, onDelete, onMove, autoPlayOnMobile = f
     } finally {
       setIsDownloading(false);
     }
-  }, [link.video_url, link.id, isDownloading]);
+  }, [link.video_url, link.id, link.title, isDownloading, isMobile]);
 
   const handleCopyUrl = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
