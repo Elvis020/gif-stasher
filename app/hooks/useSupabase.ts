@@ -162,9 +162,12 @@ export function useDeleteLink() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (link: Link) => {
-            // Delete video from storage if exists
+            const userId = await getCurrentUserId();
+            if (!userId) throw new Error("Not authenticated");
+
+            // Delete video from storage if exists (with ownership verification)
             if (link.video_path) {
-                await deleteVideoFromStorage(link.video_path);
+                await deleteVideoFromStorage(link.video_path, link.id, userId);
             }
 
             // Delete link record
@@ -192,9 +195,12 @@ export function useProcessVideo() {
             tweetUrl: string;
             manualVideoUrl?: string;
         }) => {
+            // Get current user ID for rate limiting
+            const userId = await getCurrentUserId();
+
             // If manual URL provided, use it directly
             if (manualVideoUrl) {
-                return processManualVideoUrl(manualVideoUrl, linkId);
+                return processManualVideoUrl(manualVideoUrl, linkId, userId ?? undefined);
             }
 
             // Try automatic extraction
@@ -203,8 +209,8 @@ export function useProcessVideo() {
                 throw new Error(extraction.error || "Could not extract video");
             }
 
-            // Pass thumbnail and title from extraction to save it
-            const result = await downloadAndUploadVideo(extraction.videoUrl, linkId, extraction.thumbnail, extraction.title);
+            // Pass thumbnail, title, and userId from extraction to save it
+            const result = await downloadAndUploadVideo(extraction.videoUrl, linkId, extraction.thumbnail, extraction.title, userId ?? undefined);
             if (!result.success) {
                 throw new Error(result.error || "Failed to process video");
             }
@@ -229,9 +235,12 @@ export function useRetryVideo() {
                 throw new Error(extraction.error || "Could not extract video");
             }
 
+            // Get current user ID for rate limiting
+            const userId = await getCurrentUserId();
+
             // Use original video URL if available, otherwise use extracted
             const videoUrl = link.original_video_url || extraction.videoUrl!;
-            const result = await downloadAndUploadVideo(videoUrl, link.id, extraction.thumbnail, extraction.title);
+            const result = await downloadAndUploadVideo(videoUrl, link.id, extraction.thumbnail, extraction.title, userId ?? undefined);
             if (!result.success) {
                 throw new Error(result.error || "Failed to process video");
             }

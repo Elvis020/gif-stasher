@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 import { migrateAnonymousData } from "@/app/actions";
+import { logAuditEvent } from "@/lib/audit-log";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -130,10 +131,16 @@ export function useAuth() {
             }
           });
           if (signInError) throw signInError;
+
+          // Audit log: OAuth sign-in
+          logAuditEvent('AUTH_SIGN_IN', undefined, { provider: 'google', type: 'oauth' });
         } else {
           // Some other error
           throw linkError;
         }
+      } else {
+        // Audit log: Identity linking
+        logAuditEvent('AUTH_LINK_IDENTITY', user?.id, { provider: 'google' });
       }
     } catch (error) {
       console.error('Google sign-in failed:', error);
@@ -143,6 +150,11 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
+      // Audit log: Sign out
+      if (user) {
+        logAuditEvent('AUTH_SIGN_OUT', user.id);
+      }
+
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (error) {

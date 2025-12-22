@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { logAuditEvent, logSecurityViolation, logRateLimitExceeded } from "@/lib/audit-log";
 
 // Server-side Supabase client with service role for storage operations
 function getServerSupabase() {
@@ -8,6 +10,59 @@ function getServerSupabase() {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+}
+
+// SSRF Protection: Validate video URLs to prevent fetching from private networks
+function isValidVideoUrl(url: string): { valid: boolean; error?: string } {
+    let parsedUrl: URL;
+    try {
+        parsedUrl = new URL(url);
+    } catch {
+        return { valid: false, error: "Invalid URL format" };
+    }
+
+    // Only allow HTTPS
+    if (parsedUrl.protocol !== 'https:') {
+        return { valid: false, error: "Only HTTPS URLs are allowed" };
+    }
+
+    // Whitelist allowed domains for video downloads (Twitter CDN only)
+    const allowedDomains = [
+        'video.twimg.com',
+        'pbs.twimg.com',
+        'ton.twimg.com',
+        'abs.twimg.com'
+    ];
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+    const isAllowedDomain = allowedDomains.some(domain =>
+        hostname === domain || hostname.endsWith(`.${domain}`)
+    );
+
+    if (!isAllowedDomain) {
+        return { valid: false, error: "Video URL must be from Twitter CDN" };
+    }
+
+    // Block private IP ranges and localhost
+    const blockedPatterns = [
+        /^localhost$/i,
+        /^127\./,
+        /^10\./,
+        /^172\.(1[6-9]|2\d|3[01])\./,
+        /^192\.168\./,
+        /^169\.254\./, // Link-local
+        /^::1$/, // IPv6 localhost
+        /^fc00:/, // IPv6 private
+        /^fe80:/, // IPv6 link-local
+    ];
+
+    for (const pattern of blockedPatterns) {
+        if (pattern.test(hostname)) {
+            return { valid: false, error: "Invalid video URL" };
+        }
+    }
+
+    return { valid: true };
 }
 
 // Types for video operations
@@ -29,8 +84,17 @@ interface UploadResult {
 
 export async function validateTwitterGif(url: string) {
     try {
-        // Basic URL validation
-        if (!url.includes("twitter.com") && !url.includes("x.com")) {
+        // Parse and validate URL hostname
+        let parsedUrl: URL;
+        try {
+            parsedUrl = new URL(url);
+        } catch {
+            return { isValid: false, error: "Invalid URL format" };
+        }
+
+        // Whitelist allowed hostnames
+        const allowedHosts = ['twitter.com', 'x.com', 'www.twitter.com', 'www.x.com', 'mobile.twitter.com', 'm.twitter.com'];
+        if (!allowedHosts.includes(parsedUrl.hostname.toLowerCase())) {
             return { isValid: false, error: "Not a Twitter/X URL" };
         }
 
@@ -195,11 +259,29 @@ export async function downloadAndUploadVideo(
     videoSourceUrl: string,
     linkId: string,
     thumbnail?: string,
-    title?: string
+    title?: string,
+    userId?: string
 ): Promise<UploadResult> {
     const supabase = getServerSupabase();
 
     try {
+        // Rate limiting: Check if user has exceeded video processing limit
+        if (userId) {
+            const rateLimitResult = checkRateLimit(userId, 'process_video', RATE_LIMITS.PROCESS_VIDEO);
+            if (!rateLimitResult.allowed) {
+                logRateLimitExceeded(userId, 'process_video', { linkId, resetTime: rateLimitResult.resetTime });
+                const resetDate = new Date(rateLimitResult.resetTime);
+                throw new Error(`Rate limit exceeded. Try again after ${resetDate.toLocaleTimeString()}`);
+            }
+        }
+
+        // SSRF Protection: Validate video URL
+        const urlValidation = isValidVideoUrl(videoSourceUrl);
+        if (!urlValidation.valid) {
+            logSecurityViolation(userId, 'Invalid video URL', { url: videoSourceUrl, error: urlValidation.error });
+            throw new Error(urlValidation.error || "Invalid video URL");
+        }
+
         // Update status to downloading (and thumbnail/title if provided)
         const updateData: Record<string, unknown> = {
             video_status: "downloading",
@@ -282,6 +364,13 @@ export async function downloadAndUploadVideo(
             })
             .eq("id", linkId);
 
+        // Audit log: Video upload success
+        logAuditEvent('VIDEO_UPLOAD', userId, {
+            linkId,
+            videoSize,
+            videoPath: filePath,
+        });
+
         return {
             success: true,
             videoUrl: publicUrl,
@@ -308,12 +397,19 @@ export async function downloadAndUploadVideo(
 // Process manually provided video URL
 export async function processManualVideoUrl(
     manualVideoUrl: string,
-    linkId: string
+    linkId: string,
+    userId?: string
 ): Promise<UploadResult> {
+    // SSRF Protection: Validate URL using same validation as automatic downloads
+    const urlValidation = isValidVideoUrl(manualVideoUrl);
+    if (!urlValidation.valid) {
+        return { success: false, error: urlValidation.error || "Invalid video URL" };
+    }
+
     const urlLower = manualVideoUrl.toLowerCase();
 
     // Block static image URLs
-    const imagePatterns = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", "pbs.twimg.com/media"];
+    const imagePatterns = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff"];
     const looksLikeImage = imagePatterns.some((pattern) =>
         urlLower.includes(pattern)
     );
@@ -323,7 +419,7 @@ export async function processManualVideoUrl(
     }
 
     // Validate it looks like a video URL
-    const videoPatterns = [".mp4", ".webm", ".gif", "video.twimg.com"];
+    const videoPatterns = [".mp4", ".webm", ".gif"];
     const looksLikeVideo = videoPatterns.some((pattern) =>
         urlLower.includes(pattern)
     );
@@ -332,20 +428,50 @@ export async function processManualVideoUrl(
         return { success: false, error: "URL does not appear to be a video file" };
     }
 
-    return downloadAndUploadVideo(manualVideoUrl, linkId);
+    return downloadAndUploadVideo(manualVideoUrl, linkId, undefined, undefined, userId);
 }
 
-// Delete video from storage
-export async function deleteVideoFromStorage(videoPath: string): Promise<boolean> {
+// Delete video from storage with ownership verification
+export async function deleteVideoFromStorage(videoPath: string, linkId: string, userId: string): Promise<boolean> {
     try {
         const supabase = getServerSupabase();
 
+        // Verify ownership before deletion
+        const { data: link, error: fetchError } = await supabase
+            .from("links")
+            .select("user_id, video_path")
+            .eq("id", linkId)
+            .single();
+
+        if (fetchError || !link) {
+            console.error("Failed to verify link ownership:", fetchError);
+            return false;
+        }
+
+        // Check if user owns this link
+        if (link.user_id !== userId) {
+            logSecurityViolation(userId, 'Unauthorized video deletion attempt', { linkId, videoPath });
+            console.error("Unauthorized: User does not own this link");
+            return false;
+        }
+
+        // Verify the video path matches
+        if (link.video_path !== videoPath) {
+            logSecurityViolation(userId, 'Video path mismatch', { linkId, expectedPath: link.video_path, providedPath: videoPath });
+            console.error("Video path mismatch");
+            return false;
+        }
+
+        // Delete from storage
         const { error } = await supabase.storage.from("Videos").remove([videoPath]);
 
         if (error) {
             console.error("Failed to delete video:", error);
             return false;
         }
+
+        // Audit log: Video deletion
+        logAuditEvent('VIDEO_DELETE', userId, { linkId, videoPath });
 
         return true;
     } catch (error) {
@@ -403,6 +529,102 @@ export async function claimUnclaimedRecords(userId: string): Promise<{
     }
 }
 
+// Clean up inactive anonymous users
+// Should be called periodically (e.g., daily cron job)
+// Deletes anonymous users with no activity in the last 30 days
+export async function cleanupInactiveAnonymousUsers(): Promise<{
+    success: boolean;
+    deletedUsers: number;
+    deletedLinks: number;
+    deletedFolders: number;
+    error?: string;
+}> {
+    try {
+        const supabase = getServerSupabase();
+
+        // Calculate cutoff date (30 days ago)
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - 30);
+        const cutoffIso = cutoffDate.toISOString();
+
+        // Find anonymous users with no recent activity
+        // Note: This requires tracking last_activity_at in the auth.users metadata
+        // For now, we'll use created_at from links and folders as a proxy
+        const { data: inactiveLinks, error: linksError } = await supabase
+            .from("links")
+            .select("user_id, video_path")
+            .lt("created_at", cutoffIso)
+            .not("user_id", "is", null);
+
+        if (linksError) {
+            throw new Error(`Failed to find inactive links: ${linksError.message}`);
+        }
+
+        // Get unique anonymous user IDs from inactive links
+        const userIds = new Set<string>();
+        const videoPaths: string[] = [];
+
+        if (inactiveLinks) {
+            for (const link of inactiveLinks) {
+                if (link.user_id) {
+                    userIds.add(link.user_id);
+                }
+                if (link.video_path) {
+                    videoPaths.push(link.video_path);
+                }
+            }
+        }
+
+        let deletedLinksCount = 0;
+        let deletedFoldersCount = 0;
+        let deletedUsersCount = 0;
+
+        // Delete videos from storage
+        if (videoPaths.length > 0) {
+            await supabase.storage.from("Videos").remove(videoPaths);
+        }
+
+        // Delete links and folders for inactive anonymous users
+        for (const userId of userIds) {
+            // Delete links
+            const { data: deletedLinks } = await supabase
+                .from("links")
+                .delete()
+                .eq("user_id", userId)
+                .select("id");
+
+            deletedLinksCount += deletedLinks?.length || 0;
+
+            // Delete folders
+            const { data: deletedFolders } = await supabase
+                .from("folders")
+                .delete()
+                .eq("user_id", userId)
+                .select("id");
+
+            deletedFoldersCount += deletedFolders?.length || 0;
+
+            deletedUsersCount++;
+        }
+
+        return {
+            success: true,
+            deletedUsers: deletedUsersCount,
+            deletedLinks: deletedLinksCount,
+            deletedFolders: deletedFoldersCount,
+        };
+    } catch (error) {
+        console.error("Cleanup error:", error);
+        return {
+            success: false,
+            deletedUsers: 0,
+            deletedLinks: 0,
+            deletedFolders: 0,
+            error: error instanceof Error ? error.message : "Unknown error",
+        };
+    }
+}
+
 // Migrate anonymous user data to a signed-in user
 // Uses service role to bypass RLS
 export async function migrateAnonymousData(
@@ -449,6 +671,13 @@ export async function migrateAnonymousData(
         }
 
         console.log(`Migrated ${links?.length || 0} links and ${folders?.length || 0} folders from ${fromUserId} to ${toUserId}`);
+
+        // Audit log: Data migration
+        logAuditEvent('DATA_MIGRATION', toUserId, {
+            fromUserId,
+            migratedLinks: links?.length || 0,
+            migratedFolders: folders?.length || 0,
+        });
 
         return {
             success: true,
