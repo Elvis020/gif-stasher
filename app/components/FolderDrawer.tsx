@@ -192,6 +192,7 @@ export function FolderDrawer({
                       folders={folders}
                       onDelete={onDeleteLink}
                       onMove={onMoveLink}
+                      autoPlayOnMobile={true}
                     />
                   </div>
                 </motion.div>

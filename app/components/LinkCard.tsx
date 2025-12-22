@@ -10,7 +10,6 @@ import {
   AlertCircle,
   RefreshCw,
   Download,
-  Play,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { clsx } from "clsx";
@@ -29,18 +28,32 @@ interface LinkCardProps {
   folders: Folder[];
   onDelete: (id: string) => Promise<void>;
   onMove: (linkId: string, folderId: string | null) => void;
+  autoPlayOnMobile?: boolean;
 }
 
-export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
+export function LinkCard({ link, folders, onDelete, onMove, autoPlayOnMobile = false }: LinkCardProps) {
   const { isDark } = useTheme();
   const [isHovering, setIsHovering] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const retryVideo = useRetryVideo();
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
+      setIsMobile(isTouchDevice || isSmallScreen);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -151,21 +164,17 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
         isDeleting && "opacity-50 pointer-events-none"
       )}
       onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => {
-        setIsHovering(false);
-        setIsPlaying(false);
-      }}
+      onMouseLeave={() => setIsHovering(false)}
     >
       {/* Thumbnail */}
       <div
         className={clsx(
-          "relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden flex-shrink-0",
-          "flex items-center justify-center cursor-pointer",
+          "relative w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden flex-shrink-0",
+          "flex items-center justify-center",
           !link.thumbnail && !hasVideo && `bg-gradient-to-br ${getGradient(link.url)}`
         )}
-        onClick={() => hasVideo && setIsPlaying(!isPlaying)}
       >
-        {hasVideo && isPlaying ? (
+        {hasVideo && (isHovering || (isMobile && autoPlayOnMobile)) ? (
           <video
             ref={videoRef}
             src={link.video_url!}
@@ -176,14 +185,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
             playsInline
           />
         ) : link.thumbnail ? (
-          <>
-            <img src={link.thumbnail} alt="" className="w-full h-full object-cover" />
-            {hasVideo && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Play className="w-6 h-6 text-white fill-white" />
-              </div>
-            )}
-          </>
+          <img src={link.thumbnail} alt="" className="w-full h-full object-cover" />
         ) : (
           <span className="text-white/50 text-sm font-bold">GIF</span>
         )}

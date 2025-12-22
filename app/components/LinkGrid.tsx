@@ -11,6 +11,7 @@ interface LinkGridProps {
   onDelete: (id: string) => Promise<void>;
   onMove: (linkId: string, folderId: string | null) => void;
   isLoading?: boolean;
+  autoPlayOnMobile?: boolean;
 }
 
 export function LinkGrid({
@@ -19,6 +20,7 @@ export function LinkGrid({
   onDelete,
   onMove,
   isLoading,
+  autoPlayOnMobile = false,
 }: LinkGridProps) {
   if (isLoading) {
     return (
@@ -61,6 +63,7 @@ export function LinkGrid({
               folders={folders}
               onDelete={onDelete}
               onMove={onMove}
+              autoPlayOnMobile={autoPlayOnMobile}
             />
           </motion.div>
         ))}
