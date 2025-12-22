@@ -3,6 +3,7 @@ import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/app/hooks/useTheme";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
 
 import { Fredoka } from "next/font/google";
 
@@ -25,7 +26,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={fredoka.className}>
         <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            {children}
+            <Analytics />
+          </QueryProvider>
           <Toaster position="bottom-center" />
         </ThemeProvider>
       </body>

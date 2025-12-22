@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Folder } from "@/types";
+import { Folder, Link } from "@/types";
 import {
   AddLinkForm,
   BackgroundShapes,
@@ -21,11 +21,15 @@ import {
 } from "./hooks/useSupabase";
 import { useTheme } from "./hooks/useTheme";
 import { useAuth } from "./hooks/useAuth";
+import { useUndoDelete } from "./hooks/useUndoDelete";
 import { claimUnclaimedRecords } from "./actions";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function HomePage() {
   const { isDark } = useTheme();
   const { user, isLoading: authLoading, hasClaimed, markAsClaimed } = useAuth();
+  const queryClient = useQueryClient();
+  const { deleteWithUndo } = useUndoDelete<Link>();
 
   // Queries - only run when authenticated
   const { data: folders = [], isLoading: foldersLoading } = useFolders();
@@ -95,9 +99,30 @@ export default function HomePage() {
 
   const handleDeleteLink = async (id: string) => {
     const link = links.find((l) => l.id === id);
-    if (link) {
-      await deleteLink.mutateAsync(link);
-    }
+    if (!link) return;
+
+    // Optimistically remove from cache
+    queryClient.setQueryData<Link[]>(["links"], (old) =>
+      old?.filter((l) => l.id !== id) ?? []
+    );
+
+    // Show undo toast and wait for confirmation or undo
+    await deleteWithUndo(
+      link,
+      // On confirm delete
+      async (linkToDelete) => {
+        await deleteLink.mutateAsync(linkToDelete);
+      },
+      // On undo - restore to cache
+      (linkToRestore) => {
+        queryClient.setQueryData<Link[]>(["links"], (old) =>
+          old ? [...old, linkToRestore].sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          ) : [linkToRestore]
+        );
+      },
+      "GIF deleted"
+    );
   };
 
   const handleMoveLink = (linkId: string, folderId: string | null) => {

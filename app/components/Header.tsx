@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import Image from "next/image";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTheme } from "@/app/hooks/useTheme";
 
@@ -17,13 +17,23 @@ export function Header() {
               : "bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/25"
           }`}
         >
-          <Sparkles className="w-6 h-6 text-amber-50" />
+          <Image
+            src="/gif_stash.png"
+            alt="GIF Stash"
+            width={24}
+            height={24}
+            className="w-6 h-6 rounded-md"
+          />
         </div>
         <div>
-          <h1 className={`text-2xl font-bold ${isDark ? "text-stone-100" : "text-stone-800"}`}>
+          <h1
+            className={`text-2xl font-bold ${isDark ? "text-stone-100" : "text-stone-800"}`}
+          >
             GIF Stash
           </h1>
-          <p className={`text-sm ${isDark ? "text-stone-400" : "text-stone-500"}`}>
+          <p
+            className={`text-sm ${isDark ? "text-stone-400" : "text-stone-500"}`}
+          >
             Your meme arsenal
           </p>
         </div>
