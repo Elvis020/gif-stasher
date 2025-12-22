@@ -342,3 +342,52 @@ export async function deleteVideoFromStorage(videoPath: string): Promise<boolean
         return false;
     }
 }
+
+// Claim unclaimed records for a user (migration)
+// Uses service role to bypass RLS
+export async function claimUnclaimedRecords(userId: string): Promise<{
+    success: boolean;
+    claimedLinks: number;
+    claimedFolders: number;
+    error?: string;
+}> {
+    try {
+        const supabase = getServerSupabase();
+
+        // Claim unclaimed links
+        const { data: links, error: linksError } = await supabase
+            .from("links")
+            .update({ user_id: userId })
+            .is("user_id", null)
+            .select("id");
+
+        if (linksError) {
+            throw new Error(`Failed to claim links: ${linksError.message}`);
+        }
+
+        // Claim unclaimed folders
+        const { data: folders, error: foldersError } = await supabase
+            .from("folders")
+            .update({ user_id: userId })
+            .is("user_id", null)
+            .select("id");
+
+        if (foldersError) {
+            throw new Error(`Failed to claim folders: ${foldersError.message}`);
+        }
+
+        return {
+            success: true,
+            claimedLinks: links?.length || 0,
+            claimedFolders: folders?.length || 0,
+        };
+    } catch (error) {
+        console.error("Claim records error:", error);
+        return {
+            success: false,
+            claimedLinks: 0,
+            claimedFolders: 0,
+            error: error instanceof Error ? error.message : "Unknown error",
+        };
+    }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Folder } from "@/types";
 import {
   AddLinkForm,
@@ -20,13 +20,37 @@ import {
   useDeleteFolder,
 } from "./hooks/useSupabase";
 import { useTheme } from "./hooks/useTheme";
+import { useAuth } from "./hooks/useAuth";
+import { claimUnclaimedRecords } from "./actions";
 
 export default function HomePage() {
   const { isDark } = useTheme();
+  const { user, isLoading: authLoading, hasClaimed, markAsClaimed } = useAuth();
 
-  // Queries
+  // Queries - only run when authenticated
   const { data: folders = [], isLoading: foldersLoading } = useFolders();
   const { data: links = [], isLoading: linksLoading } = useLinks();
+
+  // Run migration to claim unclaimed records on first auth
+  useEffect(() => {
+    const runMigration = async () => {
+      if (user && !hasClaimed) {
+        console.log("Running migration to claim existing records...");
+        const result = await claimUnclaimedRecords(user.id);
+        if (result.success) {
+          console.log(`Claimed ${result.claimedLinks} links and ${result.claimedFolders} folders`);
+          markAsClaimed();
+          // Refresh data after claiming
+          window.location.reload();
+        } else {
+          console.error("Migration failed:", result.error);
+          // Still mark as claimed to avoid retry loop
+          markAsClaimed();
+        }
+      }
+    };
+    runMigration();
+  }, [user, hasClaimed, markAsClaimed]);
 
   // Mutations
   const createLink = useCreateLink();
@@ -53,7 +77,7 @@ export default function HomePage() {
     {} as Record<string, number>,
   );
 
-  const isLoading = foldersLoading || linksLoading;
+  const isLoading = authLoading || foldersLoading || linksLoading;
 
   // Handlers
   const handleAddLink = async (

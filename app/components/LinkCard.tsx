@@ -302,7 +302,7 @@ export function LinkCard({ link, folders, onDelete, onMove }: LinkCardProps) {
               <FolderInput className="w-6 h-6" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuContent align="end" className="w-48 sm:w-44">
             <DropdownMenuItem
               onClick={() => onMove(link.id, null)}
               className={clsx("cursor-pointer", !link.folder_id && "text-amber-600")}

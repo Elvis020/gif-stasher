@@ -2,6 +2,7 @@ export interface Folder {
   id: string;
   name: string;
   created_at: string;
+  user_id?: string | null;
 }
 
 export type VideoStatus = 'pending' | 'downloading' | 'uploaded' | 'failed';
@@ -12,6 +13,7 @@ export interface Link {
   folder_id: string | null;
   thumbnail?: string;
   created_at: string;
+  user_id?: string | null;
   // Video storage fields
   video_url?: string | null;
   video_path?: string | null;

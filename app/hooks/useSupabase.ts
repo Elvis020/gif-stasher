@@ -8,6 +8,12 @@ import {
     deleteVideoFromStorage,
 } from "@/app/actions";
 
+// Helper to get current user ID
+async function getCurrentUserId(): Promise<string | null> {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id ?? null;
+}
+
 // --- Folders ---
 
 export function useFolders() {
@@ -29,9 +35,12 @@ export function useCreateFolder() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (name: string) => {
+            const userId = await getCurrentUserId();
+            if (!userId) throw new Error("Not authenticated");
+
             const { data, error } = await supabase
                 .from("folders")
-                .insert([{ name }])
+                .insert([{ name, user_id: userId }])
                 .select()
                 .single();
 
@@ -111,9 +120,12 @@ export function useCreateLink() {
             thumbnail?: string | null;
             video_status?: "pending" | null;
         }) => {
+            const userId = await getCurrentUserId();
+            if (!userId) throw new Error("Not authenticated");
+
             const { data, error } = await supabase
                 .from("links")
-                .insert([{ url, folder_id, thumbnail, video_status }])
+                .insert([{ url, folder_id, thumbnail, video_status, user_id: userId }])
                 .select()
                 .single();
 
