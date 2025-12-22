@@ -12,10 +12,10 @@ export function Header() {
     <header className="flex items-center justify-between mb-8">
       <div className="flex items-center gap-3">
         <div
-          className={`p-2.5 rounded-xl shadow-lg ${
+          className={`p-2.5 rounded-xl shadow-lg transition-colors ${
             isDark
-              ? "bg-gradient-to-br from-amber-600 to-orange-700 shadow-amber-600/20"
-              : "bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/25"
+              ? "bg-stone-800 border border-stone-700 shadow-stone-900/20"
+              : "bg-white border border-stone-200 shadow-stone-400/15"
           }`}
         >
           <Image

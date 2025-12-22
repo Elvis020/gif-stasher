@@ -206,13 +206,13 @@ export function LinkCard({ link, folders, onDelete, onMove, autoPlayOnMobile = f
       {/* Info */}
       <div className="flex-1 min-w-0">
         <p className={clsx(
-          "text-sm font-medium truncate",
+          "text-base sm:text-sm font-medium truncate",
           isDark ? "text-stone-200" : "text-stone-700"
         )}>
           {hasVideo ? (link.title || "Saved GIF") : isProcessing ? "Processing..." : hasFailed ? "Failed to save" : "Pending"}
         </p>
         <p className={clsx(
-          "text-xs truncate",
+          "text-sm sm:text-xs truncate",
           isDark ? "text-stone-500" : "text-stone-400"
         )}>
           {formatDate(link.created_at)}
