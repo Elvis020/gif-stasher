@@ -391,3 +391,66 @@ export async function claimUnclaimedRecords(userId: string): Promise<{
         };
     }
 }
+
+// Migrate anonymous user data to a signed-in user
+// Uses service role to bypass RLS
+export async function migrateAnonymousData(
+    fromUserId: string,
+    toUserId: string
+): Promise<{
+    success: boolean;
+    migratedLinks: number;
+    migratedFolders: number;
+    error?: string;
+}> {
+    try {
+        // Skip if same user
+        if (fromUserId === toUserId) {
+            return {
+                success: true,
+                migratedLinks: 0,
+                migratedFolders: 0,
+            };
+        }
+
+        const supabase = getServerSupabase();
+
+        // Migrate links from anonymous user to signed-in user
+        const { data: links, error: linksError } = await supabase
+            .from("links")
+            .update({ user_id: toUserId })
+            .eq("user_id", fromUserId)
+            .select("id");
+
+        if (linksError) {
+            throw new Error(`Failed to migrate links: ${linksError.message}`);
+        }
+
+        // Migrate folders from anonymous user to signed-in user
+        const { data: folders, error: foldersError } = await supabase
+            .from("folders")
+            .update({ user_id: toUserId })
+            .eq("user_id", fromUserId)
+            .select("id");
+
+        if (foldersError) {
+            throw new Error(`Failed to migrate folders: ${foldersError.message}`);
+        }
+
+        console.log(`Migrated ${links?.length || 0} links and ${folders?.length || 0} folders from ${fromUserId} to ${toUserId}`);
+
+        return {
+            success: true,
+            migratedLinks: links?.length || 0,
+            migratedFolders: folders?.length || 0,
+        };
+    } catch (error) {
+        console.error("Migration error:", error);
+        return {
+            success: false,
+            migratedLinks: 0,
+            migratedFolders: 0,
+            error: error instanceof Error ? error.message : "Unknown error",
+        };
+    }
+}

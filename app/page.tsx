@@ -8,6 +8,7 @@ import {
   FolderDrawer,
   FolderModal,
   Header,
+  SignInBanner,
 } from "./components";
 import {
   useFolders,
@@ -175,6 +176,8 @@ export default function HomePage() {
       <BackgroundShapes />
       <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
         <Header />
+
+        <SignInBanner linkCount={links.length} />
 
         <AddLinkForm
           folders={folders}

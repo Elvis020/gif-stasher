@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { ThemeToggle } from "./ThemeToggle";
+import { UserMenu } from "./UserMenu";
 import { useTheme } from "@/app/hooks/useTheme";
 
 export function Header() {
@@ -39,7 +40,10 @@ export function Header() {
         </div>
       </div>
 
-      <ThemeToggle />
+      <div className="flex items-center gap-3">
+        <UserMenu />
+        <ThemeToggle />
+      </div>
     </header>
   );
 }
