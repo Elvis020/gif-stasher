@@ -209,7 +209,7 @@ export function LinkCard({ link, folders, onDelete, onMove, autoPlayOnMobile = f
           "text-sm font-medium truncate",
           isDark ? "text-stone-200" : "text-stone-700"
         )}>
-          {hasVideo ? "Saved GIF" : isProcessing ? "Processing..." : hasFailed ? "Failed to save" : "Pending"}
+          {hasVideo ? (link.title || "Saved GIF") : isProcessing ? "Processing..." : hasFailed ? "Failed to save" : "Pending"}
         </p>
         <p className={clsx(
           "text-xs truncate",

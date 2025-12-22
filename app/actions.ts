@@ -15,6 +15,7 @@ interface VideoExtractResult {
     success: boolean;
     videoUrl?: string;
     thumbnail?: string;
+    title?: string;
     error?: string;
 }
 
@@ -119,11 +120,17 @@ export async function extractVideoFromTweet(tweetUrl: string): Promise<VideoExtr
 
         let videoUrl: string | undefined;
         let thumbnail: string | undefined;
+        let title: string | undefined;
 
         // Check for video in mediaDetails (common structure)
         if (data.mediaDetails) {
             for (const media of data.mediaDetails) {
                 if (media.type === "video" || media.type === "animated_gif") {
+                    // Extract alt text as title
+                    if (media.ext_alt_text) {
+                        title = media.ext_alt_text;
+                    }
+
                     // Check duration - reject videos longer than 10 seconds
                     const durationMs = media.video_info?.duration_millis || 0;
                     const MAX_DURATION_MS = 10000; // 10 seconds
@@ -175,7 +182,7 @@ export async function extractVideoFromTweet(tweetUrl: string): Promise<VideoExtr
             };
         }
 
-        return { success: true, videoUrl, thumbnail };
+        return { success: true, videoUrl, thumbnail, title };
     } catch (error) {
         console.error("Video extraction error:", error);
         return { success: false, error: "Failed to extract video from tweet" };
@@ -187,18 +194,22 @@ export async function extractVideoFromTweet(tweetUrl: string): Promise<VideoExtr
 export async function downloadAndUploadVideo(
     videoSourceUrl: string,
     linkId: string,
-    thumbnail?: string
+    thumbnail?: string,
+    title?: string
 ): Promise<UploadResult> {
     const supabase = getServerSupabase();
 
     try {
-        // Update status to downloading (and thumbnail if provided)
+        // Update status to downloading (and thumbnail/title if provided)
         const updateData: Record<string, unknown> = {
             video_status: "downloading",
             original_video_url: videoSourceUrl,
         };
         if (thumbnail) {
             updateData.thumbnail = thumbnail;
+        }
+        if (title) {
+            updateData.title = title;
         }
         await supabase
             .from("links")

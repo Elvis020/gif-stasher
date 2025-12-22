@@ -14,6 +14,7 @@ export interface Link {
   thumbnail?: string;
   created_at: string;
   user_id?: string | null;
+  title?: string | null;
   // Video storage fields
   video_url?: string | null;
   video_path?: string | null;

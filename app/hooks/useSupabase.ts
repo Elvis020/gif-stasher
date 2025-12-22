@@ -203,8 +203,8 @@ export function useProcessVideo() {
                 throw new Error(extraction.error || "Could not extract video");
             }
 
-            // Pass thumbnail from extraction to save it
-            const result = await downloadAndUploadVideo(extraction.videoUrl, linkId, extraction.thumbnail);
+            // Pass thumbnail and title from extraction to save it
+            const result = await downloadAndUploadVideo(extraction.videoUrl, linkId, extraction.thumbnail, extraction.title);
             if (!result.success) {
                 throw new Error(result.error || "Failed to process video");
             }
@@ -222,7 +222,7 @@ export function useRetryVideo() {
 
     return useMutation({
         mutationFn: async (link: Link) => {
-            // Always try extraction to get thumbnail
+            // Always try extraction to get thumbnail and title
             const extraction = await extractVideoFromTweet(link.url);
 
             if (!link.original_video_url && (!extraction.success || !extraction.videoUrl)) {
@@ -231,7 +231,7 @@ export function useRetryVideo() {
 
             // Use original video URL if available, otherwise use extracted
             const videoUrl = link.original_video_url || extraction.videoUrl!;
-            const result = await downloadAndUploadVideo(videoUrl, link.id, extraction.thumbnail);
+            const result = await downloadAndUploadVideo(videoUrl, link.id, extraction.thumbnail, extraction.title);
             if (!result.success) {
                 throw new Error(result.error || "Failed to process video");
             }
