@@ -47,7 +47,33 @@ export function useCreateFolder() {
             if (error) throw error;
             return data as Folder;
         },
-        onSuccess: () => {
+        onMutate: async (name) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ["folders"] });
+
+            // Snapshot previous value
+            const previousFolders = queryClient.getQueryData<Folder[]>(["folders"]);
+
+            // Optimistically add new folder
+            queryClient.setQueryData<Folder[]>(["folders"], (old = []) => [
+                ...old,
+                {
+                    id: `temp-${Date.now()}`,
+                    name,
+                    created_at: new Date().toISOString(),
+                    user_id: "temp",
+                } as Folder,
+            ]);
+
+            return { previousFolders };
+        },
+        onError: (_err, _name, context) => {
+            // Rollback on error
+            if (context?.previousFolders) {
+                queryClient.setQueryData(["folders"], context.previousFolders);
+            }
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ["folders"] });
         },
     });
@@ -67,7 +93,29 @@ export function useUpdateFolder() {
             if (error) throw error;
             return data as Folder;
         },
-        onSuccess: () => {
+        onMutate: async ({ id, name }) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ["folders"] });
+
+            // Snapshot previous value
+            const previousFolders = queryClient.getQueryData<Folder[]>(["folders"]);
+
+            // Optimistically update the folder
+            queryClient.setQueryData<Folder[]>(["folders"], (old = []) =>
+                old.map((folder) =>
+                    folder.id === id ? { ...folder, name } : folder
+                )
+            );
+
+            return { previousFolders };
+        },
+        onError: (_err, _variables, context) => {
+            // Rollback on error
+            if (context?.previousFolders) {
+                queryClient.setQueryData(["folders"], context.previousFolders);
+            }
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ["folders"] });
         },
     });
@@ -132,7 +180,42 @@ export function useCreateLink() {
             if (error) throw error;
             return data as Link;
         },
-        onSuccess: () => {
+        onMutate: async (newLink) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ["links"] });
+
+            // Snapshot previous value
+            const previousLinks = queryClient.getQueryData<Link[]>(["links"]);
+
+            // Optimistically add new link
+            queryClient.setQueryData<Link[]>(["links"], (old = []) => [
+                {
+                    id: `temp-${Date.now()}`,
+                    url: newLink.url,
+                    folder_id: newLink.folder_id,
+                    thumbnail: newLink.thumbnail || null,
+                    video_url: null,
+                    video_path: null,
+                    video_size: null,
+                    video_status: newLink.video_status || "pending",
+                    video_error: null,
+                    original_video_url: null,
+                    title: null,
+                    created_at: new Date().toISOString(),
+                    user_id: "temp",
+                } as Link,
+                ...old,
+            ]);
+
+            return { previousLinks };
+        },
+        onError: (_err, _newLink, context) => {
+            // Rollback on error
+            if (context?.previousLinks) {
+                queryClient.setQueryData(["links"], context.previousLinks);
+            }
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ["links"] });
         },
     });
@@ -152,7 +235,29 @@ export function useMoveLink() {
             if (error) throw error;
             return data as Link;
         },
-        onSuccess: () => {
+        onMutate: async ({ id, folder_id }) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ["links"] });
+
+            // Snapshot previous value
+            const previousLinks = queryClient.getQueryData<Link[]>(["links"]);
+
+            // Optimistically update the link
+            queryClient.setQueryData<Link[]>(["links"], (old = []) =>
+                old.map((link) =>
+                    link.id === id ? { ...link, folder_id } : link
+                )
+            );
+
+            return { previousLinks };
+        },
+        onError: (_err, _variables, context) => {
+            // Rollback on error
+            if (context?.previousLinks) {
+                queryClient.setQueryData(["links"], context.previousLinks);
+            }
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ["links"] });
         },
     });

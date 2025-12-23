@@ -5,9 +5,12 @@ import { Folder, Link } from "@/types";
 import {
   AddLinkForm,
   BackgroundShapes,
+  ErrorBoundary,
   FolderDrawer,
   FolderModal,
+  FolderSkeleton,
   Header,
+  NetworkStatus,
   SignInBanner,
 } from "./components";
 import {
@@ -82,7 +85,7 @@ export default function HomePage() {
     {} as Record<string, number>,
   );
 
-  const isLoading = authLoading || foldersLoading || linksLoading;
+  const isDataLoading = foldersLoading || linksLoading;
 
   // Handlers
   const handleAddLink = async (
@@ -154,53 +157,50 @@ export default function HomePage() {
     setFolderModalOpen(true);
   };
 
-  if (isLoading) {
-    return (
+  return (
+    <ErrorBoundary isDark={isDark}>
+      <NetworkStatus />
       <main
-        className={`min-h-screen flex items-center justify-center transition-colors duration-300 relative grainy ${
-          isDark ? "bg-stone-900 text-stone-400" : "bg-amber-50 text-stone-500"
+        className={`min-h-screen transition-colors duration-300 relative ${
+          isDark ? "bg-stone-900" : "bg-amber-50"
         }`}
       >
         <BackgroundShapes />
-        <span className="relative z-10">Loading your stash...</span>
-      </main>
-    );
-  }
-
-  return (
-    <main
-      className={`min-h-screen transition-colors duration-300 relative ${
-        isDark ? "bg-stone-900" : "bg-amber-50"
-      }`}
-    >
-      <BackgroundShapes />
-      <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
-        <Header />
+        <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
+          <Header />
 
         <SignInBanner linkCount={links.length} />
 
-        <AddLinkForm
-          folders={folders}
-          onSubmit={handleAddLink}
-          onNewFolder={openNewFolderModal}
-          isLoading={createLink.isPending}
-          onSaveSuccess={() => {
-            setOpenFolderId("unsorted");
-          }}
-        />
+        {/* Show form immediately, even during auth loading */}
+        {!authLoading && (
+          <AddLinkForm
+            folders={folders}
+            onSubmit={handleAddLink}
+            onNewFolder={openNewFolderModal}
+            isLoading={createLink.isPending}
+            onSaveSuccess={() => {
+              setOpenFolderId("unsorted");
+            }}
+          />
+        )}
 
-        <FolderDrawer
-          folders={folders}
-          links={links}
-          onDeleteLink={handleDeleteLink}
-          onMoveLink={handleMoveLink}
-          onNewFolder={openNewFolderModal}
-          onEditFolder={handleEditFolder}
-          onDeleteFolder={handleDeleteFolder}
-          linkCounts={linkCounts}
-          openFolderId={openFolderId}
-          onOpenFolderChange={setOpenFolderId}
-        />
+        {/* Show skeleton while loading, otherwise show content */}
+        {authLoading || isDataLoading ? (
+          <FolderSkeleton />
+        ) : (
+          <FolderDrawer
+            folders={folders}
+            links={links}
+            onDeleteLink={handleDeleteLink}
+            onMoveLink={handleMoveLink}
+            onNewFolder={openNewFolderModal}
+            onEditFolder={handleEditFolder}
+            onDeleteFolder={handleDeleteFolder}
+            linkCounts={linkCounts}
+            openFolderId={openFolderId}
+            onOpenFolderChange={setOpenFolderId}
+          />
+        )}
 
         <FolderModal
           isOpen={folderModalOpen}
@@ -211,7 +211,8 @@ export default function HomePage() {
           onSubmit={handleCreateFolder}
           folder={editingFolder}
         />
-      </div>
-    </main>
+        </div>
+      </main>
+    </ErrorBoundary>
   );
 }

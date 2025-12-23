@@ -11,10 +11,13 @@ const createQueryClient = () =>
   new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000, // 1 minute
+        staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh longer
         gcTime: 1000 * 60 * 60 * 24, // 24 hours - keep cache longer for Safari
         refetchOnWindowFocus: false,
-        refetchOnMount: true, // Always refetch on mount for fresh data
+        refetchOnMount: false, // Don't refetch if data is fresh (improves bad network UX)
+        retry: 3, // Retry failed requests 3 times
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+        networkMode: 'offlineFirst' as const, // Prefer cache when offline
       },
     },
   });
