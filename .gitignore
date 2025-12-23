@@ -1,8 +1,8 @@
-node_modules
-.next
-.claude
 CLAUDE.md
-.dev
+DEVELOPER.md
 
+node_modules/
 .env.*
-.env.local
+.dev
+.claude
+.next
