@@ -5,6 +5,8 @@ export * from "./ErrorBoundary";
 export * from "./FolderDrawer";
 export * from "./FolderModal";
 export * from "./FolderSkeleton";
+export * from "./GalleryFolderCard";
+export * from "./GalleryModal";
 export * from "./FolderTabs";
 export * from "./Header";
 export * from "./LinkCard";
